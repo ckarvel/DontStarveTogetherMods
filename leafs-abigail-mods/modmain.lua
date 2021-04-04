@@ -2,8 +2,11 @@
 -- GLOBAL.require("debugkeys")
 
 -- TODO:
--- bug: Rolled-back server -> at start wendy insane -> sanity callback not triggered -> abbie can't attack nightmares
 -- enhancement: abbie can attack tentacle pillar
+-- Future:
+--  better fix for: if wendy starts at sanity 0, abbie won't be crazy.
+--  Find out how to get Wendy from Abbie and vice versa
+--        Because Abigail is linked with the first Wendy found on the server
 ----------------------------------------------------------------------
 -- Abigail fight shadow creatures
 -- NOTES:
@@ -82,3 +85,16 @@ AddPrefabPostInit("nightmarebeak", CheckIfAbigailAttacking)
 AddPrefabPostInit("oceanhorror", CheckIfAbigailAttacking)
 
 
+local function AllowAbigailHits(inst)
+  if not GLOBAL.TheWorld.ismastersim then return end
+  inst:AddTag("monster") -- so abigail can attack him
+  old_onhit = inst.components.combat.onhitfn
+  inst.components.combat.onhitfn = function(inst, attacker, damage)
+    old_onhit(inst, attacker, damage)
+    if attacker:HasTag("abigail") then
+      attacker.components.combat:SetTarget(inst)
+    end
+  end
+end
+
+AddPrefabPostInit("tentacle_pillar", AllowAbigailHits)
