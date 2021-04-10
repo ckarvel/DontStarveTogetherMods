@@ -11,7 +11,7 @@ forumthread = ""
 api_version = 10
 
 dont_starve_compatible = false
-reign_of_giants_compatible = false
+reign_of_giants_compatible = true
 dst_compatible = true
 
 all_clients_require_mod = true

@@ -1,8 +1,4 @@
--- GLOBAL.CHEATS_ENABLED = true
--- GLOBAL.require("debugkeys")
-
 -- TODO:
--- enhancement: abbie can attack tentacle pillar
 -- Future:
 --  better fix for: if wendy starts at sanity 0, abbie won't be crazy.
 --  Find out how to get Wendy from Abbie and vice versa
@@ -10,8 +6,6 @@
 ----------------------------------------------------------------------
 -- Abigail fight shadow creatures
 -- NOTES:
--- AddPrefabPostInit - called once on start
--- sanitymodechanged: refers to mode change between lunacy and insanity
 -- _playerlink -> this is for the quest ghosts, pipspook
 -- Q's:
 -- why isn't player the follower.leader?! what is follower.leader then?
@@ -39,7 +33,9 @@ local function OnSanityChange(inst, player, insane)
   end
 end
 
--- Enables Abigail to attack shadow creatures when Wendy's insane
+----------------------------------------------------------------------
+-- Abigail will attack shadow creatures when Wendy's insane
+----------------------------------------------------------------------
 local function CanAttackShadowCreatures(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
   player = GetWendyPlayer()
@@ -78,7 +74,6 @@ local function CheckIfAbigailAttacking(inst)
     old_onkilledbyother(inst, attacker)
   end
 end
-
 --- Get All Nightmare creatures ---
 local NIGHTMARES =
 {
@@ -88,11 +83,13 @@ local NIGHTMARES =
   "nightmarebeak",
   "oceanhorror"
 }
-
 for k,v in pairs(NIGHTMARES) do
   AddPrefabPostInit(v, CheckIfAbigailAttacking)
 end
 
+----------------------------------------------------------------------
+-- Abigail can attack Tentacle Pillar
+----------------------------------------------------------------------
 local function AllowAbigailHits(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
   inst:AddTag("monster") -- so abigail can attack him
@@ -104,5 +101,4 @@ local function AllowAbigailHits(inst)
     end
   end
 end
-
 AddPrefabPostInit("tentacle_pillar", AllowAbigailHits)
