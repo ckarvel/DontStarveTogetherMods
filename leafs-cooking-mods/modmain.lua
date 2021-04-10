@@ -40,9 +40,6 @@ local function MakeCooker(inst)
         chef.components.health:DoFireDamage(1, inst, true)
         chef:PushEvent("burnt")
       end
-      if inst.components.fueled ~= nil then
-        inst.components.fueled:DoDelta(-.05 * inst.components.fueled.maxfuel)
-      end
     elseif inst.components.fueled ~= nil then
       inst.components.fueled:DoDelta(-.01 * inst.components.fueled.maxfuel)
     end
@@ -73,8 +70,6 @@ local EXTRACT = AddAction("EXTRACT", "Extract", function(act)
 end)
 
 EXTRACT.priority = 2
-EXTRACT.rmb = true
-EXTRACT.mount_valid = true
 
 local Action = GLOBAL.Action
 local ActionHandler = GLOBAL.ActionHandler
@@ -96,38 +91,21 @@ end)
 AddStategraphActionHandler("wilson", ActionHandler(EXTRACT, "dolongaction"))
 AddStategraphActionHandler("wilson_client", ActionHandler(EXTRACT, "dolongaction"))
 
-AddPrefabPostInit("acorn", function(inst)
+--- Define Extractable objects---
+local EXTRACTABLE =
+{
+  "acorn",
+  "pinecone"
+}
+
+local function SetExtractable(inst)
 	if not GLOBAL.TheWorld.ismastersim then return end
 	inst:AddComponent('extractable')
 	inst.components.extractable:SetOnExtract(onextract)
-end)
-AddPrefabPostInit("pinecone", function(inst)
-	if not GLOBAL.TheWorld.ismastersim then return end
-	inst:AddComponent('extractable')
-	inst.components.extractable:SetOnExtract(onextract)
-end)
+end
 
--- why the hell doesnt this work
--- the ef is inventoryitem_classified, hoes
--- local EXTRACTABLE =
--- {
---   "acorn",
---   "pinecone"
--- }
--- this is called after every prefab spawns in the world (a bird, a tree, you name it)
--- AddPrefabPostInitAny(function(inst)
--- 	if not GLOBAL.TheWorld.ismastersim then
--- 		return
--- 	end
+for k,v in pairs(EXTRACTABLE) do
+  AddPrefabPostInit(v, SetExtractable)
+end
 
---   if inst and inst:HasTag("extractable") then
---     return
---   end
-
---   for index, item in pairs(EXTRACTABLE) do
---     if inst.prefab == item[1] then
---       inst:AddComponent('extractable')
---     end
---   end
--- end)
-
+----------------------------------------------------------------------

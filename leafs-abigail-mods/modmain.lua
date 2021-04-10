@@ -78,12 +78,20 @@ local function CheckIfAbigailAttacking(inst)
     old_onkilledbyother(inst, attacker)
   end
 end
-AddPrefabPostInit("crawlinghorror", CheckIfAbigailAttacking)
-AddPrefabPostInit("terrorbeak", CheckIfAbigailAttacking)
-AddPrefabPostInit("crawlingnightmare", CheckIfAbigailAttacking)
-AddPrefabPostInit("nightmarebeak", CheckIfAbigailAttacking)
-AddPrefabPostInit("oceanhorror", CheckIfAbigailAttacking)
 
+--- Get All Nightmare creatures ---
+local NIGHTMARES =
+{
+  "crawlinghorror",
+  "terrorbeak",
+  "crawlingnightmare",
+  "nightmarebeak",
+  "oceanhorror"
+}
+
+for k,v in pairs(NIGHTMARES) do
+  AddPrefabPostInit(v, CheckIfAbigailAttacking)
+end
 
 local function AllowAbigailHits(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
