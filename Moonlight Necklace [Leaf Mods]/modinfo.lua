@@ -1,7 +1,7 @@
 name = "Moonlight Necklace [Leaf Mods]"
 description = "The Moon(Neck)lace, a cheaper version of Magiluminescence amulet."
 author = "amoryleaf"
-version = "1.0.0"
+version = "1.0.1"
 
 forumthread = ""
 

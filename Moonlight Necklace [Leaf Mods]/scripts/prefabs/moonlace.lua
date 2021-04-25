@@ -90,8 +90,6 @@ local function moonlace()
 
     inst:AddComponent("equippable")
     inst.components.equippable.equipslot = EQUIPSLOTS.BODY
-    inst.components.equippable.dapperness = TUNING.DAPPERNESS_SMALL
-    inst.components.equippable.walkspeedmult = 1.2
     inst.components.equippable:SetOnEquip(onequip_moonlace)
     inst.components.equippable:SetOnUnequip(onunequip_moonlace)
 
