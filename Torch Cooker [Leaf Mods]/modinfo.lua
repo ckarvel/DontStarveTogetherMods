@@ -1,7 +1,7 @@
 name = "Torch Cooker [Leaf Mods]"
 description = "Torches can be used to cook food."
 author = "amoryleaf"
-version = "1.0.0"
+version = "1.0.1"
 
 forumthread = ""
 

@@ -10,8 +10,10 @@ local function MakeCooker(inst)
         chef.components.health:DoFireDamage(1, inst, true)
         chef:PushEvent("burnt")
       end
-    end
-    if inst.components.fueled ~= nil then
+      if inst.components.fueled ~= nil then
+          inst.components.fueled:DoDelta(-.05 * inst.components.fueled.maxfuel)
+      end
+    elseif inst.components.fueled ~= nil then
       inst.components.fueled:DoDelta(-.01 * inst.components.fueled.maxfuel)
     end
   end
