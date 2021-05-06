@@ -1,48 +1,53 @@
+----------------------------------------------------------------------
 local function onmaxstamina(self, maxstamina)
     self.inst.replica.stamina:SetMax(maxstamina)
     self.inst.replica.stamina:SetIsFull((self.currentstamina or maxstamina) >= maxstamina)
 end
-
+----------------------------------------------------------------------
 local function oncurrentstamina(self, currentstamina)
     self.inst.replica.stamina:SetCurrent(currentstamina)
     self.inst.replica.stamina:SetIsTired(currentstamina <= 0)
     self.inst.replica.stamina:SetIsFull(currentstamina >= self.maxstamina)
 end
-
+----------------------------------------------------------------------
+local function onusingstamina(self, flag)
+    print("onusingstamina")
+    self.inst.replica.stamina:SetIsSprinting(flag)
+end
+----------------------------------------------------------------------
 local function onpenalty(self, penalty)
     self.inst.replica.stamina:SetPenalty(penalty)
 end
-
+----------------------------------------------------------------------
 local Stamina = Class(function(self, inst)
     self.inst = inst
     self.maxstamina = 100
     self.minstamina = 0
     self.currentstamina = self.maxstamina
-    self.using_stamina = false
+    self.usingstamina = false
     self.penalty = 0.0
-    self.rate = 1
-    -- self.cooldown = 0
-    -- self.regen_rate = 0
+    self.inst:StartUpdatingComponent(self)
 end,
 nil,
 {
     maxstamina = onmaxstamina,
     currentstamina = oncurrentstamina,
+    usingstamina = onusingstamina,
     penalty = onpenalty,
 })
-
+----------------------------------------------------------------------
 function Stamina:OnRemoveFromEntity()
     print("=====================================")
     print("OnRemoveFromEntity")
     self:StopRegen()
 end
-
+----------------------------------------------------------------------
 function Stamina:ForceUpdateHUD(overtime)
     print("=====================================")
     print("ForceUpdateHUD")
     self:DoDelta(0, overtime, nil, true, nil, true)
 end
-
+----------------------------------------------------------------------
 function Stamina:OnSave()
     print("=====================================")
     print("OnSave")
@@ -53,7 +58,7 @@ function Stamina:OnSave()
 		maxstamina = self.save_maxstamina and self.maxstamina or nil
     }
 end
-
+----------------------------------------------------------------------
 function Stamina:OnLoad(data)
     print("=====================================")
     print("OnLoad")
@@ -77,96 +82,31 @@ function Stamina:OnLoad(data)
         self:ForceUpdateHUD(true)
     end
 end
-
-function Stamina:OnUpdate(dt)
-    print("=====================================")
-    print("OnUpdate")
-
-    if not (self.inst:HasTag("spawnprotection") or
-            self.inst.sg:HasStateTag("sleeping") or
-            self.inst.is_teleporting) then
-        self:Recalc(dt)
-    end
-end
-
-function Stamina:DoUseStamina(amount)
-    local time = GetTime()
-    if not self.using_stamina then
-        self.using_stamina = true
-        self.using_staminastarttime = time
-        self.inst:StartUpdatingComponent(self)
-
-        amount = math.clamp(amount, self.minstamina, self.maxstamina)
-        print("stamina amount to use = "..amount)
-
-        self:DoDelta(-amount, false, "sprint")
-    end
-end
-
-local function DoRegen(inst, self)
-    print("=====================================")
-    print("OnDoRegen")
-    -- print(string.format("stamina:DoRegen ^%.2g/%.2fs", self.regen.amount, self.regen.period))
-    -- force tired when aggro?
-    if not self:IsTired() then
-        self:DoDelta(self.regen.amount, true, "regen")
-    --else
-        --print("    can't regen from dead!")
-    end
-end
-
-function Stamina:StartRegen(amount, period)
-    print("=====================================")
-    print("Stamina:StartRegen")
-    if self.regen == nil then
-        self.regen = {}
-    end
-    self.regen.amount = amount
-    self.regen.period = period
-
-    if self.regen.task == nil then
-        print("Starting regen task")
-        self.regen.task = self.inst:DoPeriodicTask(self.regen.period, DoRegen, nil, self)
-    end
-end
-
-function Stamina:StopRegen()
-    print("=====================================")
-    print("Stamina:StopRegen")
-    if self.regen ~= nil then
-        if self.regen.task ~= nil then
-            print("Stopping regen task")
-            self.regen.task:Cancel()
-            self.regen.task = nil
-        end
-        self.regen = nil
-    end
-end
-
+----------------------------------------------------------------------
 function Stamina:SetPenalty(penalty)
     --Penalty should never be less than 0% or ever above 75%.
     self.penalty = math.clamp(penalty, 0, TUNING.MAXIMUM_STAMINA_PENALTY)
 end
-
+----------------------------------------------------------------------
 function Stamina:DeltaPenalty(delta)
     self:SetPenalty(self.penalty + delta)
     self:ForceUpdateHUD(false) --handles capping stamina at max with penalty
 end
-
+----------------------------------------------------------------------
 function Stamina:GetPenaltyPercent()
     return self.penalty
 end
-
+----------------------------------------------------------------------
 function Stamina:GetPercent()
     print("=====================================")
     print("GetPercent")
     return self.currentstamina / self.maxstamina
 end
-
+----------------------------------------------------------------------
 function Stamina:GetPercentWithPenalty()
     return self.currentstamina / self:GetMaxWithPenalty()
 end
-
+----------------------------------------------------------------------
 function Stamina:GetDebugString()
     local s = string.format("%2.2f / %2.2f", self.currentstamina, self:GetMaxWithPenalty())
     if self.regen ~= nil then
@@ -174,11 +114,11 @@ function Stamina:GetDebugString()
     end
     return s
 end
-
+----------------------------------------------------------------------
 function Stamina:SetCurrentStamina(amount)
     self.currentstamina = amount
 end
-
+----------------------------------------------------------------------
 function Stamina:SetMaxStamina(amount)
     print("=====================================")
     print("SetMaxStamina")
@@ -186,15 +126,15 @@ function Stamina:SetMaxStamina(amount)
     self.currentstamina = amount
     self:ForceUpdateHUD(true) --handles capping stamina at max with penalty
 end
-
+----------------------------------------------------------------------
 function Stamina:SetMinStamina(amount)
     self.minstamina = amount
 end
-
+----------------------------------------------------------------------
 function Stamina:GetMaxWithPenalty()
     return self.maxstamina - self.maxstamina * self.penalty
 end
-
+----------------------------------------------------------------------
 function Stamina:MakeTired()
     print("=====================================")
     print("MakeTired")
@@ -202,68 +142,109 @@ function Stamina:MakeTired()
         self:DoDelta(-self.currentstamina, nil, nil)
     end
 end
-
+----------------------------------------------------------------------
 function Stamina:IsTired()
     print("=====================================")
     print("IsTired")
     return self.currentstamina <= 0
 end
-
-function Stamina:SetPercent(percent, overtime, cause)
-    self:SetVal(self.maxstamina * percent, cause)
-    self:DoDelta(0, overtime, cause)
+----------------------------------------------------------------------
+function Stamina:MakeFull()
+    print("=====================================")
+    print("MakeFull")
+    self:DoDelta(self.maxstamina, nil, nil)
 end
-
--- maybe things can affect stamina
-function Stamina:SetVal(val, cause, afflicter)
+----------------------------------------------------------------------
+function Stamina:IsFull()
+    print("=====================================")
+    print("IsFull")
+    return self.currentstamina >= self.maxstamina
+end
+----------------------------------------------------------------------
+function Stamina:SetPercent(percent, overtime)
+    self:SetVal(self.maxstamina * percent)
+    self:DoDelta(0, overtime)
+end
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- Ways to implement stamina regeneration:
+-- 1. StartRegen()
+    -- Amount increased by certain value every X seconds.
+        -- Stamina increase always but.. if I can use Shift callback to stop/start/set value...
+-- 2. OnUpdate() - (StartUpdatingComponent must be called)
+        -- Best option because we don't want stamina regenerating while user is moving.
+        -- * Can check if monsters are nearby to determine if stamina should be empty
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- [Setter] Sets actual stamina value
+-- an example cause : "file_load"
+----------------------------------------------------------------------
+function Stamina:SetValue(value, cause)
     print("=====================================")
     print("SetVal")
     local old_stamina = self.currentstamina
-    local maxstamina = self:GetMaxWithPenalty()
-    local minstamina = math.min(self.minstamina or 0, maxstamina)
-    print("old_stamina = "..old_stamina)
-    
-    if val > maxstamina then
-        val = maxstamina
-    end
+    -- make sure its between min and max (don't forget penalty)
+    self.currentstamina = math.clamp(value, self.minstamina, self:GetMaxWithPenalty())
 
-    if val <= minstamina then
-        self.currentstamina = minstamina
-        -- self.inst:PushEvent("minstamina", { cause = cause, afflicter = afflicter })
-    else
-        self.currentstamina = val
-    end
-
-    print("currentstamina = "..self.currentstamina)
+    print("old_stamina = "..old_stamina.."currentstamina = "..self.currentstamina)
 
     if old_stamina > 0 and self.currentstamina <= 0 then
-        print("stamina [death]")
+        print("no stamina left")
     end
 end
-
+----------------------------------------------------------------------
+-- TODO: Find way from main to get replica to give us this value
+----------------------------------------------------------------------
+function Stamina:SetIsSprinting(flag)
+    print("=====================================")
+    print("Server:SetIsSprinting")
+    print(flag)
+    self.usingstamina = flag
+end
+----------------------------------------------------------------------
+-- [Event Push] Sets stamina percentage (used for UI?)
+-- overtime: True if amount is supposed to be given over time?
+----------------------------------------------------------------------
 function Stamina:DoDelta(amount, overtime, cause)
     print("=====================================")
-    print("DoDelta::amount = "..amount)
-
+    print("DoDelta")
     local old_percent = self:GetPercent()
-    print("DoDelta::old_percent = "..old_percent)
-    self:SetVal(self.currentstamina + amount, cause)
+    self:SetValue(self.currentstamina + amount, cause)
     local new_percent = self:GetPercent()
-    print("DoDelta::new_percent = "..new_percent)
+    print("old_percent = "..old_percent.." new_percent = "..new_percent)
 
-    self.inst:PushEvent("staminadelta", { oldpercent = old_percent, newpercent = self:GetPercent(), overtime = overtime, cause = cause, amount = amount })
+    self.inst:PushEvent("staminadelta", { oldpercent = old_percent, newpercent = new_percent, overtime = overtime, amount = amount })
 
     if self.ondelta ~= nil then
-        self.ondelta(self.inst, old_percent, self:GetPercent())
+        self.ondelta(self.inst, old_percent, new_percent)
     end
     return amount
 end
-
-function Stamina:Recalc(dt)
+----------------------------------------------------------------------
+-- MAIN LOOP
+-- This is called every tick after StartUpdatingComponent is called
+----------------------------------------------------------------------
+function Stamina:OnUpdate(dt)
     print("=====================================")
-    print("Recalc")
-    self:DoDelta(self.rate * dt, true)
+    print("OnUpdate")
+
+    if self.usingstamina then
+        if self:IsTired() then
+            self.usingstamina = false
+            print("Ran out of stamina hoe")
+        else
+            print("Decrease rate = 1")
+            self:DoDelta(-self.rate * dt, true)
+            print("Amount decreased = "..self.rate * dt)
+        end
+    elseif self:IsFull() then
+        print("Stamina Full, no change")
+    elseif not (self.inst:HasTag("spawnprotection") or
+            self.inst.sg:HasStateTag("sleeping") or
+            self.inst.is_teleporting) then
+        -- not using stamina and stamina not full
+        self:DoDelta(self.rate * dt, true)
+    end
 end
-
-
+----------------------------------------------------------------------
 return Stamina

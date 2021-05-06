@@ -1,17 +1,17 @@
+--------------------------------------------------------------------------
 local Stamina = Class(function(self, inst)
     self.inst = inst
 
     self._istired = net_bool(inst.GUID, "stamina._istired")
-    self._isnotfull = net_bool(inst.GUID, "stamina._isnotfull")
+    self._isfull = net_bool(inst.GUID, "stamina._isfull")
+    self._issprinting = net_bool(inst.GUID, "stamina._issprinting")
     if TheWorld.ismastersim then
         self.classified = inst.player_classified
     elseif self.classified == nil and inst.player_classified ~= nil then
         self:AttachClassified(inst.player_classified)
     end
 end)
-
 --------------------------------------------------------------------------
-
 function Stamina:OnRemoveFromEntity()
     if self.classified ~= nil then
         if TheWorld.ismastersim then
@@ -22,23 +22,22 @@ function Stamina:OnRemoveFromEntity()
         end
     end
 end
-
+--------------------------------------------------------------------------
 Stamina.OnRemoveEntity = Stamina.OnRemoveFromEntity
-
+--------------------------------------------------------------------------
 function Stamina:AttachClassified(classified)
     self.classified = classified
     self.ondetachclassified = function() self:DetachClassified() end
     self.inst:ListenForEvent("onremove", self.ondetachclassified, classified)
 end
-
+--------------------------------------------------------------------------
 function Stamina:DetachClassified()
     self.classified = nil
     self.ondetachclassified = nil
 end
-
 --------------------------------------------------------------------------
 --Client helpers
-
+--------------------------------------------------------------------------
 local function GetPenaltyPercent_Client(self)
     return self.classified.staminapenalty:value() / 200
 end
@@ -46,28 +45,26 @@ end
 local function MaxWithPenalty_Client(self)
     return self.classified.maxstamina:value() * (1 - GetPenaltyPercent_Client(self))
 end
-
 --------------------------------------------------------------------------
-
 function Stamina:SetCurrent(current)
     if self.classified ~= nil then
         self.classified:SetValue("currentstamina", current)
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:SetMax(max)
     if self.classified ~= nil then
         self.classified:SetValue("maxstamina", max)
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:SetPenalty(penalty)
     if self.classified ~= nil then
         assert(penalty >= 0 and penalty <= 1, "Player staminapenalty out of range: "..tostring(penalty))
         self.classified.staminapenalty:set(math.floor(penalty * 200 + .5))
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:Max()
     if self.inst.components.stamina ~= nil then
         return self.inst.components.stamina.maxstamina
@@ -77,7 +74,7 @@ function Stamina:Max()
         return 100
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:MaxWithPenalty()
     if self.inst.components.stamina ~= nil then
         return self.inst.components.stamina:GetMaxWithPenalty()
@@ -87,7 +84,7 @@ function Stamina:MaxWithPenalty()
         return 100
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:GetPercent()
     if self.inst.components.stamina ~= nil then
         return self.inst.components.stamina:GetPercent()
@@ -97,7 +94,7 @@ function Stamina:GetPercent()
         return 1
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:GetCurrent()
     if self.inst.components.stamina ~= nil then
         return self.inst.components.stamina.currentstamina
@@ -107,7 +104,7 @@ function Stamina:GetCurrent()
         return 100
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:GetPenaltyPercent()
     if self.inst.components.stamina ~= nil then
         return self.inst.components.stamina:GetPenaltyPercent()
@@ -117,21 +114,29 @@ function Stamina:GetPenaltyPercent()
         return 0
     end
 end
-
+--------------------------------------------------------------------------
 function Stamina:SetIsTired(istired)
     self._istired:set(istired)
 end
-
+--------------------------------------------------------------------------
 function Stamina:IsTired()
     return self._istired:value()
 end
-
+--------------------------------------------------------------------------
 function Stamina:SetIsFull(isfull)
-    self._isnotfull:set(not isfull)
+    self._isfull:set(isfull)
 end
-
+--------------------------------------------------------------------------
 function Stamina:IsFull()
-    return not self._isnotfull:value()
+    return self._isfull:value()
 end
-
+--------------------------------------------------------------------------
+function Stamina:SetIsSprinting(is_sprinting)
+    self._issprinting:set(is_sprinting)
+end
+--------------------------------------------------------------------------
+function Stamina:IsSprinting()
+    return self._issprinting:value()
+end
+--------------------------------------------------------------------------
 return Stamina
