@@ -1,5 +1,3 @@
-GLOBAL.CHEATS_ENABLED = true
-GLOBAL.require("debugkeys")
 ----------------------------------------------------------------------
 -- Add Stamina
   -- Shift to increase speed by 100% for 5 seconds
@@ -22,18 +20,23 @@ local function InGame()
 end
 ---
 local function IsSprinting(inst, flag)
-  if not InGame() then return end
 	if inst and inst.components and inst.components.stamina then
-    print("===============================================")
-    print("Setting IsSprinting to")
-    print(flag)
     inst.components.stamina:SetIsSprinting(flag)
   end
 end
 AddModRPCHandler(modname, "IsSprinting", IsSprinting)
 ---
-local function SendSprintRPC(flag)
-	SendModRPCToServer(GetModRPC(modname, "IsSprinting"), flag)
+local key_pressed = false
+local function SendSprintRPC(press)
+  -- if key state hasn't changed or
+  -- if game not active, don't send request
+  if (key_pressed and press) or (press and not InGame()) then return end
+
+  --note: if press == false and game not active, I'll send the request
+	SendModRPCToServer(GetModRPC(modname, "IsSprinting"), press)
+
+  -- keep track of key state
+  key_pressed = press
 end
 ---
 GLOBAL.TheInput:AddKeyDownHandler(SPRINTKEY, function(inst) SendSprintRPC(true) end)
@@ -44,7 +47,9 @@ local StaminaUtils = GLOBAL.require("staminautils")
 -- Add stamina netvars to player classified
 ----------------------------------------------------------------------
 local function AddStaminaClassified(inst)
-  if not GLOBAL.TheWorld.ismastersim then return end
+  -- WARNING: some of this code needs to be run on the client
+  -- if by mistake, you force it to only run on the server, side effects will occur.
+  -- in my case, the UI badge values, like hunger, will not update.
   StaminaUtils.SetupNetvars(inst)
   inst:DoTaskInTime(0, StaminaUtils.RegisterNetListeners)
 end

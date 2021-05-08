@@ -11,7 +11,6 @@ local function oncurrentstamina(self, currentstamina)
 end
 ----------------------------------------------------------------------
 local function onusingstamina(self, flag)
-    print("onusingstamina")
     self.inst.replica.stamina:SetIsSprinting(flag)
 end
 ----------------------------------------------------------------------
@@ -26,6 +25,8 @@ local Stamina = Class(function(self, inst)
     self.currentstamina = self.maxstamina
     self.usingstamina = false
     self.penalty = 0.0
+    self.rate = 20
+    self.cooldown = 0.5
     self.inst:StartUpdatingComponent(self)
 end,
 nil,
@@ -37,20 +38,14 @@ nil,
 })
 ----------------------------------------------------------------------
 function Stamina:OnRemoveFromEntity()
-    print("=====================================")
-    print("OnRemoveFromEntity")
     self:StopRegen()
 end
 ----------------------------------------------------------------------
 function Stamina:ForceUpdateHUD(overtime)
-    print("=====================================")
-    print("ForceUpdateHUD")
     self:DoDelta(0, overtime, nil, true, nil, true)
 end
 ----------------------------------------------------------------------
 function Stamina:OnSave()
-    print("=====================================")
-    print("OnSave")
     return
     {
         stamina = self.currentstamina,
@@ -60,8 +55,6 @@ function Stamina:OnSave()
 end
 ----------------------------------------------------------------------
 function Stamina:OnLoad(data)
-    print("=====================================")
-    print("OnLoad")
 	if data.maxstamina ~= nil then
 		self.maxstamina = data.maxstamina
 	end
@@ -98,8 +91,6 @@ function Stamina:GetPenaltyPercent()
 end
 ----------------------------------------------------------------------
 function Stamina:GetPercent()
-    print("=====================================")
-    print("GetPercent")
     return self.currentstamina / self.maxstamina
 end
 ----------------------------------------------------------------------
@@ -120,8 +111,6 @@ function Stamina:SetCurrentStamina(amount)
 end
 ----------------------------------------------------------------------
 function Stamina:SetMaxStamina(amount)
-    print("=====================================")
-    print("SetMaxStamina")
     self.maxstamina = amount
     self.currentstamina = amount
     self:ForceUpdateHUD(true) --handles capping stamina at max with penalty
@@ -136,28 +125,20 @@ function Stamina:GetMaxWithPenalty()
 end
 ----------------------------------------------------------------------
 function Stamina:MakeTired()
-    print("=====================================")
-    print("MakeTired")
     if self.currentstamina > 0 then
         self:DoDelta(-self.currentstamina, nil, nil)
     end
 end
 ----------------------------------------------------------------------
 function Stamina:IsTired()
-    print("=====================================")
-    print("IsTired")
     return self.currentstamina <= 0
 end
 ----------------------------------------------------------------------
 function Stamina:MakeFull()
-    print("=====================================")
-    print("MakeFull")
     self:DoDelta(self.maxstamina, nil, nil)
 end
 ----------------------------------------------------------------------
 function Stamina:IsFull()
-    print("=====================================")
-    print("IsFull")
     return self.currentstamina >= self.maxstamina
 end
 ----------------------------------------------------------------------
@@ -180,14 +161,10 @@ end
 -- an example cause : "file_load"
 ----------------------------------------------------------------------
 function Stamina:SetValue(value, cause)
-    print("=====================================")
-    print("SetVal")
     local old_stamina = self.currentstamina
     -- make sure its between min and max (don't forget penalty)
     self.currentstamina = math.clamp(value, self.minstamina, self:GetMaxWithPenalty())
-
-    print("old_stamina = "..old_stamina.."currentstamina = "..self.currentstamina)
-
+    print(self.currentstamina)
     if old_stamina > 0 and self.currentstamina <= 0 then
         print("no stamina left")
     end
@@ -196,9 +173,6 @@ end
 -- TODO: Find way from main to get replica to give us this value
 ----------------------------------------------------------------------
 function Stamina:SetIsSprinting(flag)
-    print("=====================================")
-    print("Server:SetIsSprinting")
-    print(flag)
     self.usingstamina = flag
 end
 ----------------------------------------------------------------------
@@ -206,13 +180,10 @@ end
 -- overtime: True if amount is supposed to be given over time?
 ----------------------------------------------------------------------
 function Stamina:DoDelta(amount, overtime, cause)
-    print("=====================================")
-    print("DoDelta")
+    print("amount = "..amount)
     local old_percent = self:GetPercent()
     self:SetValue(self.currentstamina + amount, cause)
     local new_percent = self:GetPercent()
-    print("old_percent = "..old_percent.." new_percent = "..new_percent)
-
     self.inst:PushEvent("staminadelta", { oldpercent = old_percent, newpercent = new_percent, overtime = overtime, amount = amount })
 
     if self.ondelta ~= nil then
@@ -225,23 +196,18 @@ end
 -- This is called every tick after StartUpdatingComponent is called
 ----------------------------------------------------------------------
 function Stamina:OnUpdate(dt)
-    print("=====================================")
-    print("OnUpdate")
-
     if self.usingstamina then
         if self:IsTired() then
             self.usingstamina = false
+            print("========================")
             print("Ran out of stamina hoe")
         else
-            print("Decrease rate = 1")
             self:DoDelta(-self.rate * dt, true)
-            print("Amount decreased = "..self.rate * dt)
         end
-    elseif self:IsFull() then
-        print("Stamina Full, no change")
     elseif not (self.inst:HasTag("spawnprotection") or
             self.inst.sg:HasStateTag("sleeping") or
-            self.inst.is_teleporting) then
+            self.inst.is_teleporting or
+            self:IsFull()) then
         -- not using stamina and stamina not full
         self:DoDelta(self.rate * dt, true)
     end

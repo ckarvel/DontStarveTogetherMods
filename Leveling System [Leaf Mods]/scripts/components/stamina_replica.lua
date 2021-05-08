@@ -131,8 +131,14 @@ function Stamina:IsFull()
     return self._isfull:value()
 end
 --------------------------------------------------------------------------
-function Stamina:SetIsSprinting(is_sprinting)
-    self._issprinting:set(is_sprinting)
+function Stamina:SetIsSprinting(flag)
+    -- when flag is false, its actually nil. set(nil) crashes the game.
+    -- but y tho...
+    if not flag then
+        self._issprinting:set(false)
+    else
+        self._issprinting:set(flag)
+    end
 end
 --------------------------------------------------------------------------
 function Stamina:IsSprinting()
