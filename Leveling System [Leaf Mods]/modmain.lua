@@ -6,12 +6,9 @@
     -- 1. Player wants to sprint if running (sg::"run_state")
       -- add delay before sprint then to make sure this is what they want
 ----------------------------------------------------------------------
-GLOBAL.TUNING.WILSON_STAMINA = 100
-GLOBAL.TUNING.STAMINA_PENALTY = 0.25
-GLOBAL.TUNING.MAXIMUM_STAMINA_PENALTY = 0.75
-local SPRINTKEY = GetModConfigData("SPRINTKEY")
 AddReplicableComponent("stamina")
 ----------------------------------------------------------------------
+-- CLIENT->SERVER COMMS
 -- Clients send to Server through RPCs
 -- Server send to Client through netvars
 ----------------------------------------------------------------------
@@ -39,25 +36,32 @@ local function SendSprintRPC(press)
   key_pressed = press
 end
 ---
+local SPRINTKEY = GetModConfigData("SPRINTKEY")
 GLOBAL.TheInput:AddKeyDownHandler(SPRINTKEY, function(inst) SendSprintRPC(true) end)
 GLOBAL.TheInput:AddKeyUpHandler(SPRINTKEY, function(inst) SendSprintRPC(false) end)
 ----------------------------------------------------------------------
-local StaminaUtils = GLOBAL.require("staminautils")
+local StaminaHelper = GLOBAL.require("staminahelper")
 ----------------------------------------------------------------------
+-- NETVARS
 -- Add stamina netvars to player classified
 ----------------------------------------------------------------------
 local function AddStaminaClassified(inst)
   -- WARNING: some of this code needs to be run on the client
   -- if by mistake, you force it to only run on the server, side effects will occur.
   -- in my case, the UI badge values, like hunger, will not update.
-  StaminaUtils.SetupNetvars(inst)
-  inst:DoTaskInTime(0, StaminaUtils.RegisterNetListeners)
+  StaminaHelper.SetupNetvars(inst)
+  inst:DoTaskInTime(0, StaminaHelper.RegisterNetListeners)
 end
 ---
 AddPrefabPostInit("player_classified", AddStaminaClassified)
 ----------------------------------------------------------------------
+-- APPLY TO PLAYER PREFABS
 -- Add stamina component to all player prefabs
 ----------------------------------------------------------------------
+GLOBAL.TUNING.WILSON_STAMINA = 100
+GLOBAL.TUNING.STAMINA_PENALTY = 0.25
+GLOBAL.TUNING.MAXIMUM_STAMINA_PENALTY = 0.75
+---
 local function AddStaminaToMisc(inst)
   -- uh, I'm guessing I have to do this?
   if inst.components.trader and inst.components.trader.onaccept then

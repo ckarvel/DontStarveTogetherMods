@@ -1,6 +1,6 @@
-local StaminaUtils = {}
-
-StaminaUtils.OnStaminaDirty = function(inst)
+local StaminaHelper = {}
+--------------------------------------------------------------------------
+StaminaHelper.OnStaminaDirty = function(inst)
   if inst._parent ~= nil then
     local oldpercent = inst._oldstaminapercent
     local percent = inst.currentstamina:value() / inst.maxstamina:value()
@@ -24,14 +24,14 @@ StaminaUtils.OnStaminaDirty = function(inst)
     inst.isstaminapulsedown:set_local(false)
   end
 end
-
+--------------------------------------------------------------------------
 local function SetDirty(netvar, val)
   --Forces a netvar to be dirty regardless of value
   netvar:set_local(val)
   netvar:set(val)
 end
-
-StaminaUtils.OnStaminaDelta = function(parent, data)
+--------------------------------------------------------------------------
+StaminaHelper.OnStaminaDelta = function(parent, data)
   if data.newpercent > data.oldpercent then
       --Force dirty, we just want to trigger an event on the client
       SetDirty(parent.player_classified.isstaminapulseup, true)
@@ -40,22 +40,22 @@ StaminaUtils.OnStaminaDelta = function(parent, data)
       SetDirty(parent.player_classified.isstaminapulsedown, true)
   end
 end
-
-StaminaUtils.RegisterNetListeners = function(inst)
+--------------------------------------------------------------------------
+StaminaHelper.RegisterNetListeners = function(inst)
   if TheWorld.ismastersim then
     inst._parent = inst.entity:GetParent()
-    inst:ListenForEvent("staminadelta", StaminaUtils.OnStaminaDelta, inst._parent)
+    inst:ListenForEvent("staminadelta", StaminaHelper.OnStaminaDelta, inst._parent)
   else
     inst.isstaminapulseup:set_local(false)
     inst.isstaminapulsedown:set_local(false)
-    inst:ListenForEvent("staminadirty", StaminaUtils.OnStaminaDirty)
+    inst:ListenForEvent("staminadirty", StaminaHelper.OnStaminaDirty)
     if inst._parent ~= nil then
       inst._oldstaminapercent = inst.maxstamina:value() > 0 and inst.currentstamina:value() / inst.maxstamina:value() or 0
     end
   end
 end
-
-StaminaUtils.SetupNetvars = function(inst)
+--------------------------------------------------------------------------
+StaminaHelper.SetupNetvars = function(inst)
   --Stamina variables
   inst.currentstamina = net_ushortint(inst.GUID, "stamina.currentstamina", "staminadirty")
   inst.maxstamina = net_ushortint(inst.GUID, "stamina.maxstamina", "staminadirty")
@@ -66,5 +66,5 @@ StaminaUtils.SetupNetvars = function(inst)
   inst.currentstamina:set(100)
   inst.maxstamina:set(100)
 end
-
-return StaminaUtils
+--------------------------------------------------------------------------
+return StaminaHelper
