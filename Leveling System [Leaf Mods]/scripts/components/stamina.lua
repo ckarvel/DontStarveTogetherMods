@@ -35,10 +35,13 @@ local Stamina = Class(function(self, inst)
     self.ratedown = 20
     self.rateup = 1.67
     -- I want user to wait... 2 seconds before stamina starts regen'ing
+    -- hmm, maybe we should have a... you need 25% regenerated before you can run again
+    -- instead of allowing ms runs lol
     self.cooldownperiod = 2
     self.needcooldown = false
     self.cooldowntask = nil
     self.time = nil
+    self.sprintspeedmult = 2 -- in between saddle basic and walking cane
     self.inst:StartUpdatingComponent(self)
 end,
 nil,
@@ -159,25 +162,6 @@ end
         -- Best option because we don't want stamina regenerating while user is moving.
         -- * Can check if monsters are nearby to determine if stamina should be empty
 ----------------------------------------------------------------------
-function Stamina:StopCooldown()
-    if self.cooldowntask ~= nil then
-        self.cooldowntask:Cancel()
-        self.cooldowntask = nil
-    end
-end
-----------------------------------------------------------------------
-local function finish_cooldown(self)
-    self:StopCooldown()
-    self.needcooldown = false
-    print("COOLDOWN FINISHED")
-end
-----------------------------------------------------------------------
--- Stop player from sprinting by resetting walk speed
-----------------------------------------------------------------------
-function Stamina:ResetPlayerSpeed()
-    print("ResetPlayerSpeed")
-end
-----------------------------------------------------------------------
 -- [Setter] Sets actual stamina value
 -- an example cause : "file_load"
 -- Cooldown of 2 seconds when player is tired, but player has to let go of stamina key.
@@ -252,10 +236,32 @@ local function CanStaminaRegen(self)
     end
 end
 ----------------------------------------------------------------------
--- Start player sprinting
+-- Increase player walkspeed
 ----------------------------------------------------------------------
 function Stamina:BoostWalkSpeed()
     print("BoostWalkSpeed")
+    self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
+end
+----------------------------------------------------------------------
+-- Reset player walkspeed
+----------------------------------------------------------------------
+function Stamina:ResetPlayerSpeed()
+    print("ResetPlayerSpeed")
+    -- key param is option. here we only want to remove the "stamina" speed
+    self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
+end
+----------------------------------------------------------------------
+function Stamina:StopCooldown()
+    if self.cooldowntask ~= nil then
+        self.cooldowntask:Cancel()
+        self.cooldowntask = nil
+    end
+end
+----------------------------------------------------------------------
+local function end_cooldown(inst)
+    print("Cooldown ended")
+    inst.components.stamina:StopCooldown()
+    inst.components.stamina.needcooldown = false
 end
 ----------------------------------------------------------------------
 -- MAIN LOOP
@@ -263,10 +269,8 @@ end
 -- Note: Here using_stamina means player is holding down the shift button
 ----------------------------------------------------------------------
 function Stamina:OnUpdate(dt)
-    PrintInterval(self, dt, 1.0)
-
     -- Are we in cooldown?
-    if self.need_cooldown then
+    if self.needcooldown then
         -- if button state hasn't changed -> exit
         if self.old_usingstamina == self.usingstamina then return end
         -- button state has changed -> check if sprinting
@@ -275,7 +279,7 @@ function Stamina:OnUpdate(dt)
             self:StopCooldown()
         else
             -- restart task
-            self.cooldowntask = self.inst:DoTaskInTime(self.cooldownperiod, finish_cooldown, self)
+            self.cooldowntask = self.inst:DoTaskInTime(self.cooldownperiod, end_cooldown)
         end
         -- set old to current so we only come here when button state changes
         self.old_usingstamina = self.usingstamina
@@ -291,13 +295,16 @@ function Stamina:OnUpdate(dt)
                 self.old_usingstamina = self.usingstamina
             end
             self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
+            PrintInterval(self, dt, 0.0)
         end
     else
         if self.old_usingstamina ~= self.usingstamina then
             self:ResetPlayerSpeed()
+            self.old_usingstamina = self.usingstamina
         end
         if CanStaminaRegen(self) then
             self:DoDelta(self.rateup * dt, true) -- increase stamina
+            PrintInterval(self, dt, 0.0)
         end
     end
 end
