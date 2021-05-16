@@ -67,4 +67,65 @@ StaminaHelper.SetupNetvars = function(inst)
   inst.maxstamina:set(100)
 end
 --------------------------------------------------------------------------
+StaminaHelper.ShowStatusNumbers = function(self, callback)
+  callback()
+  self.lungs.num:Show()
+end
+--------------------------------------------------------------------------
+StaminaHelper.HideStatusNumbers = function(self, callback)
+  callback()
+  self.lungs.num:Hide()
+end
+--------------------------------------------------------------------------
+local function OnSetPlayerMode(inst, self)
+  self.customtask = nil
+  if self.onstaminadelta == nil then
+    self.onstaminadelta = function(owner, data) self:StaminaDelta(data) end
+    self.inst:ListenForEvent("staminadelta", self.onstaminadelta, self.owner)
+    self:SetStaminaPercent(self.owner.replica.stamina:GetPercent())
+  end
+end
+--------------------------------------------------------------------------
+local function OnSetGhostMode(inst, self)
+  self.customtask = nil
+  if self.onstaminadelta ~= nil then
+      self.inst:RemoveEventCallback("staminadelta", self.onstaminadelta, self.owner)
+      self.onstaminadelta = nil
+  end
+end
+--------------------------------------------------------------------------
+StaminaHelper.SetGhostMode = function(self, ghostmode, callback)
+  callback(ghostmode)
+  if ghostmode then
+    self.lungs:Hide()
+    self.lungs:StopWarning()
+  else
+    self.lungs:Show()
+  end
+  self.customtask = self.inst:DoTaskInTime(0, ghostmode and OnSetGhostMode or OnSetPlayerMode, self)
+end
+--------------------------------------------------------------------------
+StaminaHelper.SetStaminaPercent = function(self, pct)
+  self.lungs:SetPercent(pct, self.owner.replica.stamina:Max())
+
+  if pct <= 0 then
+      self.lungs:StartWarning()
+  else
+      self.lungs:StopWarning()
+  end
+end
+--------------------------------------------------------------------------
+StaminaHelper.StaminaDelta = function(self, data)
+  self:SetStaminaPercent(data.newpercent)
+  if not data.overtime then
+      if data.newpercent > data.oldpercent then
+          self.lungs:PulseGreen()
+          TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/hunger_up")
+      elseif data.newpercent < data.oldpercent then
+          TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/hunger_down")
+          self.lungs:PulseRed()
+      end
+  end
+end
+--------------------------------------------------------------------------
 return StaminaHelper

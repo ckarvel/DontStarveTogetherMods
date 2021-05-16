@@ -1,14 +1,9 @@
 ----------------------------------------------------------------------
--- Add Stamina
-  -- Shift to increase speed by 100% for 5 seconds
-  -- Cooldown starting at 1 minute
-  -- Options to detect if user's not trying to sprint?
-    -- 1. Player wants to sprint if running (sg::"run_state")
-      -- add delay before sprint then to make sure this is what they want
+-- Add Stamina component
 ----------------------------------------------------------------------
 AddReplicableComponent("stamina")
 ----------------------------------------------------------------------
--- CLIENT->SERVER COMMS
+-- CLIENT/SERVER
 -- Clients send to Server through RPCs
 -- Server send to Client through netvars
 ----------------------------------------------------------------------
@@ -35,7 +30,9 @@ local function SendSprintRPC(press)
   -- keep track of key state
   key_pressed = press
 end
----
+----------------------------------------------------------------------
+-- KEYBINDINGS
+----------------------------------------------------------------------
 local SPRINTKEY = GetModConfigData("SPRINTKEY")
 GLOBAL.TheInput:AddKeyDownHandler(SPRINTKEY, function(inst) SendSprintRPC(true) end)
 GLOBAL.TheInput:AddKeyUpHandler(SPRINTKEY, function(inst) SendSprintRPC(false) end)
@@ -48,7 +45,7 @@ local StaminaHelper = GLOBAL.require("staminahelper")
 local function AddStaminaClassified(inst)
   -- WARNING: some of this code needs to be run on the client
   -- if by mistake, you force it to only run on the server, side effects will occur.
-  -- in my case, the UI badge values, like hunger, will not update.
+  -- in my case, the UI badge values, like stamina, will not update.
   StaminaHelper.SetupNetvars(inst)
   inst:DoTaskInTime(0, StaminaHelper.RegisterNetListeners)
 end
@@ -56,7 +53,6 @@ end
 AddPrefabPostInit("player_classified", AddStaminaClassified)
 ----------------------------------------------------------------------
 -- APPLY TO PLAYER PREFABS
--- Add stamina component to all player prefabs
 ----------------------------------------------------------------------
 GLOBAL.TUNING.WILSON_STAMINA = 100
 GLOBAL.TUNING.STAMINA_PENALTY = 0.25
@@ -86,4 +82,54 @@ local function AddStaminaComponent(inst)
 end
 ---
 AddPlayerPostInit(AddStaminaComponent)
+----------------------------------------------------------------------
+-- USER INTERFACE
+-- Add Stamina Badge to Status Display
+----------------------------------------------------------------------
+local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 
+Assets = {
+  Asset("PKGREF", "anim/stamina.zip"),
+  Asset("ANIM", "anim/status_stamina.zip")
+}
+
+AddClassPostConstruct("widgets/statusdisplays", function(self)
+  ----------------------------------------------------------------------
+  -- Creates actual Stamina badge drawn on HUD
+  ----------------------------------------------------------------------
+  self.brain:SetPosition(40, -60, 0) -- move sanity
+	self.lungs = self:AddChild(StaminaBadge(self.owner))
+  self.lungs:SetPosition(-40, -60, 0)
+  self.onstaminadelta = nil
+  self.staminapenalty = 0
+  ----------------------------------------------------------------------
+  -- Show/Hide StaminaBadge Status value
+  ----------------------------------------------------------------------
+  self.old_ShowStatusNumbers = self.ShowStatusNumbers
+  self.ShowStatusNumbers = function()
+    StaminaHelper.ShowStatusNumbers(self, self.old_ShowStatusNumbers)
+  end
+  ---
+  self.old_HideStatusNumbers = self.HideStatusNumbers
+  self.HideStatusNumbers = function()
+    StaminaHelper.HideStatusNumbers(self, self.old_HideStatusNumbers)
+  end
+  ----------------------------------------------------------------------
+  -- Show/Hide StaminaBadge Status value depending on ghost mode
+  ----------------------------------------------------------------------
+  self.old_SetGhostMode = self.SetGhostMode
+  self.SetGhostMode = function(ghostmode)
+    StaminaHelper.SetGhostMode(self, ghostmode, self.old_SetGhostMode)
+  end
+  ----------------------------------------------------------------------
+  -- Set data percentage for StaminaBadge
+  ----------------------------------------------------------------------
+  self.SetStaminaPercent = function(pct)
+    StaminaHelper.SetStaminaPercent(self, pct)
+  end
+  ---
+  self.StaminaDelta = function(data)
+    StaminaHelper.StaminaDelta(self, data)
+  end
+---
+end)

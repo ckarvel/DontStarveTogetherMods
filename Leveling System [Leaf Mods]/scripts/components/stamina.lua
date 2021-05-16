@@ -57,7 +57,7 @@ function Stamina:OnRemoveFromEntity()
 end
 ----------------------------------------------------------------------
 function Stamina:ForceUpdateHUD(overtime)
-    self:DoDelta(0, overtime, nil, true, nil, true)
+    self:DoDelta(0, overtime)
 end
 ----------------------------------------------------------------------
 function Stamina:OnSave()
@@ -154,6 +154,28 @@ function Stamina:SetPercent(percent, overtime)
     self:DoDelta(0, overtime)
 end
 ----------------------------------------------------------------------
+function Stamina:SetIsSprinting(flag)
+    if self.usingstamina ~= flag then
+        self.old_usingstamina = self.usingstamina
+        self.usingstamina = flag
+    end
+end
+----------------------------------------------------------------------
+-- Increase player walkspeed
+----------------------------------------------------------------------
+function Stamina:BoostWalkSpeed()
+    print("BoostWalkSpeed")
+    self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
+end
+----------------------------------------------------------------------
+-- Reset player walkspeed
+----------------------------------------------------------------------
+function Stamina:ResetPlayerSpeed()
+    print("ResetPlayerSpeed")
+    -- key param is option. here we only want to remove the "stamina" speed
+    self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
+end
+----------------------------------------------------------------------
 -- Ways to implement stamina regeneration:
 -- 1. StartRegen()
     -- Amount increased by certain value every X seconds.
@@ -181,13 +203,6 @@ function Stamina:SetValue(value, cause)
             self.cooldowntask = nil
         end
         self.needcooldown = false
-    end
-end
-----------------------------------------------------------------------
-function Stamina:SetIsSprinting(flag)
-    if self.usingstamina ~= flag then
-        self.old_usingstamina = self.usingstamina
-        self.usingstamina = flag
     end
 end
 ----------------------------------------------------------------------
@@ -234,21 +249,6 @@ local function CanStaminaRegen(self)
     else
         return true
     end
-end
-----------------------------------------------------------------------
--- Increase player walkspeed
-----------------------------------------------------------------------
-function Stamina:BoostWalkSpeed()
-    print("BoostWalkSpeed")
-    self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
-end
-----------------------------------------------------------------------
--- Reset player walkspeed
-----------------------------------------------------------------------
-function Stamina:ResetPlayerSpeed()
-    print("ResetPlayerSpeed")
-    -- key param is option. here we only want to remove the "stamina" speed
-    self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
 end
 ----------------------------------------------------------------------
 function Stamina:StopCooldown()
