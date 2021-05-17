@@ -15,3 +15,22 @@
 ## FAQ
 1. Folder does not contain an anim.bin file\
 To create an anim.xml file (which DST Mod Tools creates which is needed to make anim.bin), your scml file needs an `mainline` and `timeline` XML animation node.
+## Terms
+**Tint**: Table representing a color in RGBA format.
+```
+An example table that represents the color red:
+
+{255/255, 0/255, 0/255, 1}
+
+red = 255
+green = 0
+blue = 0
+alpha = 1
+
+So this represents red with 100% opacity
+```
+## Assets
+Make an `Assets` table in modmain with your assets. Now all you need to reference are the names you set for your build, bank, and animation.
+## Potential side-effects
+StatusDisplays::SetGhostMode
+- Call to OnSetGhostMode/OnSetPlayerMode without a task, so due to this, self.owner.replica doesn't exist yet and so in OnSetPlayerMode, I have to check if it exists.

@@ -95,41 +95,47 @@ Assets = {
 
 AddClassPostConstruct("widgets/statusdisplays", function(self)
   ----------------------------------------------------------------------
-  -- Creates actual Stamina badge drawn on HUD
-  ----------------------------------------------------------------------
-  self.brain:SetPosition(40, -60, 0) -- move sanity
-	self.lungs = self:AddChild(StaminaBadge(self.owner))
-  self.lungs:SetPosition(-40, -60, 0)
-  self.onstaminadelta = nil
-  self.staminapenalty = 0
-  ----------------------------------------------------------------------
   -- Show/Hide StaminaBadge Status value
   ----------------------------------------------------------------------
-  self.old_ShowStatusNumbers = self.ShowStatusNumbers
-  self.ShowStatusNumbers = function()
-    StaminaHelper.ShowStatusNumbers(self, self.old_ShowStatusNumbers)
+  local old_ShowStatusNumbers = self.ShowStatusNumbers
+  self.ShowStatusNumbers = function(self)
+    print("ShowStatusNumbers")
+    StaminaHelper.ShowStatusNumbers(self, old_ShowStatusNumbers)
   end
   ---
-  self.old_HideStatusNumbers = self.HideStatusNumbers
-  self.HideStatusNumbers = function()
-    StaminaHelper.HideStatusNumbers(self, self.old_HideStatusNumbers)
-  end
-  ----------------------------------------------------------------------
-  -- Show/Hide StaminaBadge Status value depending on ghost mode
-  ----------------------------------------------------------------------
-  self.old_SetGhostMode = self.SetGhostMode
-  self.SetGhostMode = function(ghostmode)
-    StaminaHelper.SetGhostMode(self, ghostmode, self.old_SetGhostMode)
+  local old_HideStatusNumbers = self.HideStatusNumbers
+  self.HideStatusNumbers = function(self)
+    print("HideStatusNumbers")
+    StaminaHelper.HideStatusNumbers(self, old_HideStatusNumbers)
   end
   ----------------------------------------------------------------------
   -- Set data percentage for StaminaBadge
   ----------------------------------------------------------------------
-  self.SetStaminaPercent = function(pct)
+  self.SetStaminaPercent = function(self, pct)
+    print("SetStaminaPercent22")
+    print(pct)
     StaminaHelper.SetStaminaPercent(self, pct)
   end
   ---
-  self.StaminaDelta = function(data)
+  self.StaminaDelta = function(self, data)
+    print("StaminaDelta")
     StaminaHelper.StaminaDelta(self, data)
   end
----
+  ----------------------------------------------------------------------
+  -- Show/Hide StaminaBadge Status value depending on ghost mode
+  ----------------------------------------------------------------------
+  local old_SetGhostMode = self.SetGhostMode
+  self.SetGhostMode = function(self, ghostmode)
+    StaminaHelper.SetGhostMode(self, ghostmode, old_SetGhostMode)
+  end
+  ----------------------------------------------------------------------
+  -- Creates actual Stamina badge drawn on HUD
+  ----------------------------------------------------------------------
+  self.brain:SetPosition(40, -60, 0) -- move sanity
+  self.lungs = self:AddChild(StaminaBadge(self.owner))
+  self.lungs:SetPosition(-40, -60, 0)
+  self.onstaminadelta = nil
+  self.staminapenalty = 0
+  self:SetGhostMode(false)
+  ---
 end)

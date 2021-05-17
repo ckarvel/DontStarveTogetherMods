@@ -77,17 +77,19 @@ StaminaHelper.HideStatusNumbers = function(self, callback)
   self.lungs.num:Hide()
 end
 --------------------------------------------------------------------------
-local function OnSetPlayerMode(inst, self)
-  self.customtask = nil
-  if self.onstaminadelta == nil then
-    self.onstaminadelta = function(owner, data) self:StaminaDelta(data) end
-    self.inst:ListenForEvent("staminadelta", self.onstaminadelta, self.owner)
-    self:SetStaminaPercent(self.owner.replica.stamina:GetPercent())
+local function OnSetPlayerMode(self)
+  print("OnSetPlayerMode")
+  if self.owner.replica and self.owner.replica.stamina then
+    if self.onstaminadelta == nil then
+      self.onstaminadelta = function(owner, data) self:StaminaDelta(data) end
+      self.inst:ListenForEvent("staminadelta", self.onstaminadelta, self.owner)
+      StaminaHelper.SetStaminaPercent(self, self.owner.replica.stamina:GetPercent())
+    end
   end
 end
 --------------------------------------------------------------------------
-local function OnSetGhostMode(inst, self)
-  self.customtask = nil
+local function OnSetGhostMode(self)
+  print("OnSetGhostMode")
   if self.onstaminadelta ~= nil then
       self.inst:RemoveEventCallback("staminadelta", self.onstaminadelta, self.owner)
       self.onstaminadelta = nil
@@ -95,17 +97,22 @@ local function OnSetGhostMode(inst, self)
 end
 --------------------------------------------------------------------------
 StaminaHelper.SetGhostMode = function(self, ghostmode, callback)
-  callback(ghostmode)
+  print("ghostmode is")
+  print(ghostmode)
+  callback(self, ghostmode)
   if ghostmode then
     self.lungs:Hide()
     self.lungs:StopWarning()
+    OnSetGhostMode(self)
   else
     self.lungs:Show()
+    OnSetPlayerMode(self)
   end
-  self.customtask = self.inst:DoTaskInTime(0, ghostmode and OnSetGhostMode or OnSetPlayerMode, self)
 end
 --------------------------------------------------------------------------
 StaminaHelper.SetStaminaPercent = function(self, pct)
+  print("percent")
+  print(pct)
   self.lungs:SetPercent(pct, self.owner.replica.stamina:Max())
 
   if pct <= 0 then
