@@ -89,7 +89,6 @@ AddPlayerPostInit(AddStaminaComponent)
 local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 
 Assets = {
-  Asset("PKGREF", "anim/stamina.zip"),
   Asset("ANIM", "anim/status_stamina.zip")
 }
 
@@ -99,26 +98,21 @@ AddClassPostConstruct("widgets/statusdisplays", function(self)
   ----------------------------------------------------------------------
   local old_ShowStatusNumbers = self.ShowStatusNumbers
   self.ShowStatusNumbers = function(self)
-    print("ShowStatusNumbers")
     StaminaHelper.ShowStatusNumbers(self, old_ShowStatusNumbers)
   end
   ---
   local old_HideStatusNumbers = self.HideStatusNumbers
   self.HideStatusNumbers = function(self)
-    print("HideStatusNumbers")
     StaminaHelper.HideStatusNumbers(self, old_HideStatusNumbers)
   end
   ----------------------------------------------------------------------
   -- Set data percentage for StaminaBadge
   ----------------------------------------------------------------------
   self.SetStaminaPercent = function(self, pct)
-    print("SetStaminaPercent22")
-    print(pct)
     StaminaHelper.SetStaminaPercent(self, pct)
   end
   ---
   self.StaminaDelta = function(self, data)
-    print("StaminaDelta")
     StaminaHelper.StaminaDelta(self, data)
   end
   ----------------------------------------------------------------------
