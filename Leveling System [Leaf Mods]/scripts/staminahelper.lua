@@ -8,11 +8,11 @@ StaminaHelper.OnStaminaDirty = function(inst)
     -- I would think if pulse is up/down, overtime = true because values are being changed over time??
     local data =
     {
-        oldpercent = oldpercent,
-        newpercent = percent,
-        overtime =
-          not (inst.isstaminapulseup:value() and percent > oldpercent) and
-          not (inst.isstaminapulsedown:value() and percent < oldpercent),
+      oldpercent = oldpercent,
+      newpercent = percent,
+      overtime =
+        not (inst.isstaminapulseup:value() and percent > oldpercent) and
+        not (inst.isstaminapulsedown:value() and percent < oldpercent),
     }
     inst._oldstaminapercent = percent
     inst.isstaminapulseup:set_local(false)
@@ -33,11 +33,11 @@ end
 --------------------------------------------------------------------------
 StaminaHelper.OnStaminaDelta = function(parent, data)
   if data.newpercent > data.oldpercent then
-      --Force dirty, we just want to trigger an event on the client
-      SetDirty(parent.player_classified.isstaminapulseup, true)
+    --Force dirty, we just want to trigger an event on the client
+    SetDirty(parent.player_classified.isstaminapulseup, true)
   elseif data.newpercent < data.oldpercent then
-      --Force dirty, we just want to trigger an event on the client
-      SetDirty(parent.player_classified.isstaminapulsedown, true)
+    --Force dirty, we just want to trigger an event on the client
+    SetDirty(parent.player_classified.isstaminapulsedown, true)
   end
 end
 --------------------------------------------------------------------------
@@ -89,8 +89,8 @@ end
 --------------------------------------------------------------------------
 local function OnSetGhostMode(self)
   if self.onstaminadelta ~= nil then
-      self.inst:RemoveEventCallback("staminadelta", self.onstaminadelta, self.owner)
-      self.onstaminadelta = nil
+    self.inst:RemoveEventCallback("staminadelta", self.onstaminadelta, self.owner)
+    self.onstaminadelta = nil
   end
 end
 --------------------------------------------------------------------------
