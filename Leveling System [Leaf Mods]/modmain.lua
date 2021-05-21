@@ -11,12 +11,12 @@ local function InGame()
   return GLOBAL.ThePlayer and GLOBAL.ThePlayer.HUD and not GLOBAL.ThePlayer.HUD:HasInputFocus()
 end
 ---
-local function IsSprinting(inst, flag)
+local function WantsToSprint(inst, flag)
 	if inst and inst.components and inst.components.stamina then
-    inst.components.stamina:SetIsSprinting(flag)
+    inst.components.stamina:SetWantsToSprint(flag)
   end
 end
-AddModRPCHandler(modname, "IsSprinting", IsSprinting)
+AddModRPCHandler(modname, "WantsToSprint", WantsToSprint)
 ---
 local key_pressed = false
 local function SendSprintRPC(press)
@@ -25,7 +25,7 @@ local function SendSprintRPC(press)
   if (key_pressed and press) or (press and not InGame()) then return end
 
   --note: if press == false and game not active, I'll send the request
-	SendModRPCToServer(GetModRPC(modname, "IsSprinting"), press)
+	SendModRPCToServer(GetModRPC(modname, "WantsToSprint"), press)
 
   -- keep track of key state
   key_pressed = press
@@ -125,11 +125,17 @@ AddClassPostConstruct("widgets/statusdisplays", function(self)
   ----------------------------------------------------------------------
   -- Creates actual Stamina badge drawn on HUD
   ----------------------------------------------------------------------
-  self.brain:SetPosition(40, -60, 0) -- move sanity
+  self.brain:SetPosition(40, -55, 0) -- move sanity
   self.lungs = self:AddChild(StaminaBadge(self.owner))
-  self.lungs:SetPosition(-40, -60, 0)
+  self.lungs:SetPosition(-40, -55, 0)
   self.onstaminadelta = nil
   self.staminapenalty = 0
   self:SetGhostMode(false)
   ---
 end)
+
+-- TODO
+-- Don't use stamina if not moving
+-- Compatible with CombinedStatus mod
+-- Add stamina to doing other tasks?
+-- Bigger arrow when using stamina

@@ -4,7 +4,8 @@ local Stamina = Class(function(self, inst)
 
   self._istired = net_bool(inst.GUID, "stamina._istired")
   self._isfull = net_bool(inst.GUID, "stamina._isfull")
-  self._issprinting = net_bool(inst.GUID, "stamina._issprinting")
+  self._wantstosprint = net_bool(inst.GUID, "stamina._wantstosprint")
+  self._usingstamina = net_bool(inst.GUID, "stamina._usingstamina")
   if TheWorld.ismastersim then
     self.classified = inst.player_classified
   elseif self.classified == nil and inst.player_classified ~= nil then
@@ -131,18 +132,30 @@ function Stamina:IsFull()
   return self._isfull:value()
 end
 --------------------------------------------------------------------------
-function Stamina:SetIsSprinting(flag)
-  -- when flag is false, its actually nil. set(nil) crashes the game.
-  -- but y tho...
+function Stamina:WantsToSprint()
+  return self._wantstosprint:value()
+end
+--------------------------------------------------------------------------
+function Stamina:SetWantsToSprint(flag)
   if not flag then
-    self._issprinting:set(false)
+    self._wantstosprint:set(false)
   else
-    self._issprinting:set(flag)
+    self._wantstosprint:set(flag)
   end
 end
 --------------------------------------------------------------------------
-function Stamina:IsSprinting()
-  return self._issprinting:value()
+function Stamina:SetUsingStamina(flag)
+  -- when flag is false, its actually nil. set(nil) crashes the game.
+  -- but y tho...
+  if not flag then
+    self._usingstamina:set(false)
+  else
+    self._usingstamina:set(flag)
+  end
+end
+--------------------------------------------------------------------------
+function Stamina:IsUsingStamina()
+  return self._usingstamina:value()
 end
 --------------------------------------------------------------------------
 return Stamina

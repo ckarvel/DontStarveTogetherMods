@@ -10,8 +10,12 @@ local function oncurrentstamina(self, currentstamina)
   self.inst.replica.stamina:SetIsFull(currentstamina >= self.maxstamina)
 end
 ----------------------------------------------------------------------
+local function onwantstosprint(self, flag)
+  self.inst.replica.stamina:SetWantsToSprint(flag)
+end
+----------------------------------------------------------------------
 local function onusingstamina(self, flag)
-  self.inst.replica.stamina:SetIsSprinting(flag)
+  self.inst.replica.stamina:SetUsingStamina(flag)
 end
 ----------------------------------------------------------------------
 local function onpenalty(self, penalty)
@@ -24,8 +28,11 @@ local Stamina = Class(function(self, inst)
   self.minstamina = 0
   self.currentstamina = self.maxstamina
   self.penalty = 0.0
-  self.usingstamina = false -- meant to call this... wants_to_sprint
-  self.old_usingstamina = false
+  -- keeps track of button state for sprinting
+  self.wants_to_sprint = false
+  self.old_wants_to_sprint = false
+
+  self.usingstamina = false
   -- I want:
     -- 1. empty after 5s
       -- 100 / 5 = 20
@@ -48,6 +55,7 @@ nil,
 {
   maxstamina = onmaxstamina,
   currentstamina = oncurrentstamina,
+  wants_to_sprint = onwantstosprint,
   usingstamina = onusingstamina,
   penalty = onpenalty,
 })
@@ -154,26 +162,26 @@ function Stamina:SetPercent(percent, overtime)
   self:DoDelta(0, overtime)
 end
 ----------------------------------------------------------------------
-function Stamina:SetIsSprinting(flag)
-  if self.usingstamina ~= flag then
-    self.old_usingstamina = self.usingstamina
-    self.usingstamina = flag
+function Stamina:SetWantsToSprint(flag)
+  if self.wants_to_sprint ~= flag then
+    self.old_wants_to_sprint = self.wants_to_sprint
+    self.wants_to_sprint = flag
   end
 end
 ----------------------------------------------------------------------
 -- Increase player walkspeed
 ----------------------------------------------------------------------
 function Stamina:BoostWalkSpeed()
-  print("BoostWalkSpeed")
   self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
+  self.usingstamina = true
 end
 ----------------------------------------------------------------------
 -- Reset player walkspeed
 ----------------------------------------------------------------------
 function Stamina:ResetPlayerSpeed()
-  print("ResetPlayerSpeed")
   -- key param is option. here we only want to remove the "stamina" speed
   self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
+  self.usingstamina = false
 end
 ----------------------------------------------------------------------
 -- Ways to implement stamina regeneration:
@@ -263,6 +271,13 @@ local function end_cooldown(inst)
   inst.components.stamina:StopCooldown()
   inst.components.stamina.needcooldown = false
 end
+
+local function is_moving(inst)
+  if inst.sg and inst.sg:HasStateTag("moving") then
+    return true
+  end
+  return false
+end
 ----------------------------------------------------------------------
 -- MAIN LOOP
 -- This is called every tick (33ms) after StartUpdatingComponent is called
@@ -272,9 +287,9 @@ function Stamina:OnUpdate(dt)
   -- Are we in cooldown?
   if self.needcooldown then
     -- if button state hasn't changed -> exit
-    if self.old_usingstamina == self.usingstamina then return end
+    if self.old_wants_to_sprint == self.wants_to_sprint then return end
     -- button state has changed -> check if sprinting
-    if self.usingstamina then
+    if self.wants_to_sprint then
       -- cancel task -> not starting till user stops sprinting -- REVIEW THIS
       self:StopCooldown()
     else
@@ -282,29 +297,32 @@ function Stamina:OnUpdate(dt)
       self.cooldowntask = self.inst:DoTaskInTime(self.cooldownperiod, end_cooldown)
     end
     -- set old to current so we only come here when button state changes
-    self.old_usingstamina = self.usingstamina
+    self.old_wants_to_sprint = self.wants_to_sprint
     -- we're in cooldown so no need to execute the next block of code
     return
   end
 
-  if self.usingstamina then
-    if not self:IsTired() then
+  if self.wants_to_sprint then
+    -- if player moving, let 'em sprint!
+    if is_moving(self.inst) then
       -- if just started sprinting, set speed
-      if self.old_usingstamina ~= self.usingstamina then
+      if not self.usingstamina then
         self:BoostWalkSpeed()
-        self.old_usingstamina = self.usingstamina
+        self.old_wants_to_sprint = self.wants_to_sprint
       end
       self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-      PrintInterval(self, dt, 0.0)
+      -- PrintInterval(self, dt, 0.0)
+    else
+      self:ResetPlayerSpeed()
     end
   else
-    if self.old_usingstamina ~= self.usingstamina then
+    if self.old_wants_to_sprint ~= self.wants_to_sprint then
       self:ResetPlayerSpeed()
-      self.old_usingstamina = self.usingstamina
+      self.old_wants_to_sprint = self.wants_to_sprint
     end
     if CanStaminaRegen(self) then
       self:DoDelta(self.rateup * dt, true) -- increase stamina
-      PrintInterval(self, dt, 0.0)
+      -- PrintInterval(self, dt, 0.0)
     end
   end
 end
