@@ -17,8 +17,8 @@ end)
 --------------------------------------------------------------------------
 function StaminaBadge:OnUpdate(dt)
   local anim = "neutral"
-  if  self.owner ~= nil and
-    self.owner.replica.stamina ~= nil then
+  if self.owner ~= nil and
+     self.owner.replica.stamina ~= nil then
     if self.owner.replica.stamina:IsUsingStamina() then
       anim = "arrow_loop_decrease_most"
     elseif not self.owner.replica.stamina:IsFull() then

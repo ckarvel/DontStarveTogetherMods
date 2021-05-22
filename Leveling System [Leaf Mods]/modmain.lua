@@ -18,17 +18,21 @@ local function WantsToSprint(inst, flag)
 end
 AddModRPCHandler(modname, "WantsToSprint", WantsToSprint)
 ---
-local key_pressed = false
-local function SendSprintRPC(press)
+local last_key_pressed = false
+local function SendSprintRPC(key_pressed)
+  -- check if player is dead
+  local player = GLOBAL.ThePlayer;
+  if player and player:HasTag("playerghost") then return end
+
   -- if key state hasn't changed or
   -- if game not active, don't send request
-  if (key_pressed and press) or (press and not InGame()) then return end
+  if (last_key_pressed and key_pressed) or (key_pressed and not InGame()) then return end
 
   --note: if press == false and game not active, I'll send the request
-	SendModRPCToServer(GetModRPC(modname, "WantsToSprint"), press)
+	SendModRPCToServer(GetModRPC(modname, "WantsToSprint"), key_pressed)
 
   -- keep track of key state
-  key_pressed = press
+  last_key_pressed = key_pressed
 end
 ----------------------------------------------------------------------
 -- KEYBINDINGS
@@ -52,33 +56,62 @@ end
 ---
 AddPrefabPostInit("player_classified", AddStaminaClassified)
 ----------------------------------------------------------------------
+-- ADD AGGROED STATE to combat
+----------------------------------------------------------------------
+local function AddAggroSystem(self)
+  self.has_aggro = false
+  ---
+  self.GetTargeted = function(attacker)
+    self.has_aggro = true
+  end
+  ---
+  self.GetUntargeted = function()
+    self.has_aggro = false
+  end
+  ---
+  local old_engagetarget = self.EngageTarget
+  ---
+  -- Override to notify player when being targeted
+  ---
+  self.EngageTarget = function(self, target)
+    old_engagetarget(self, target)
+    if target and target.components and target.components.combat then
+      target.components.combat:GetTargeted(self.inst);
+    end
+  end
+  ---
+  local old_droptarget = self.DropTarget
+  ---
+  self.DropTarget = function(self, hasnexttarget)
+    if self.target and self.target.components and self.target.components.combat then
+      self.target.components.combat:GetUntargeted(self.inst);
+    end
+    old_droptarget(self, hasnexttarget)
+  end
+end
+AddComponentPostInit("combat", AddAggroSystem)
+----------------------------------------------------------------------
 -- APPLY TO PLAYER PREFABS
 ----------------------------------------------------------------------
 GLOBAL.TUNING.WILSON_STAMINA = 100
 GLOBAL.TUNING.STAMINA_PENALTY = 0.25
 GLOBAL.TUNING.MAXIMUM_STAMINA_PENALTY = 0.75
----
-local function AddStaminaToMisc(inst)
-  -- uh, I'm guessing I have to do this?
-  if inst.components.trader and inst.components.trader.onaccept then
-    local old_onaccept = inst.components.trader.onaccept
-
-    -- add stamina penalty when player revives
-    inst.components.trader.onaccept = function(inst, giver, item)
-      if item ~= nil and item.prefab == "reviver" and inst:HasTag("playerghost") then
-        inst.components.stamina:DeltaPenalty(GLOBAL.TUNING.STAMINA_PENALTY)
-      end
-      old_onaccept()
-    end
-
-  end
-end
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm too tired!"
+-- i think i like this for the 25% threshold
+-- GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_FULL = "Finally caught my breath!"
 ---
 local function AddStaminaComponent(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
   inst:AddComponent("stamina")
   inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
-  AddStaminaToMisc(inst)
+
+  inst:ListenForEvent("staminaempty", function(inst, data)
+      inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
+  end)
+
+  -- inst:ListenForEvent("staminafull", function(inst, data)
+  --   inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_FULL"))
+  -- end)
 end
 ---
 AddPlayerPostInit(AddStaminaComponent)
@@ -133,9 +166,3 @@ AddClassPostConstruct("widgets/statusdisplays", function(self)
   self:SetGhostMode(false)
   ---
 end)
-
--- TODO
--- Don't use stamina if not moving
--- Compatible with CombinedStatus mod
--- Add stamina to doing other tasks?
--- Bigger arrow when using stamina
