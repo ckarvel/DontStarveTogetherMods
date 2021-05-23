@@ -121,5 +121,4 @@ StaminaHelper.StaminaDelta = function(self, data)
   self:SetStaminaPercent(data.newpercent)
 end
 --------------------------------------------------------------------------
-
 return StaminaHelper

@@ -1,133 +1,84 @@
-----------------------------------------------------------------------
--- Add Stamina component
-----------------------------------------------------------------------
-AddReplicableComponent("stamina")
-----------------------------------------------------------------------
--- CLIENT/SERVER
--- Clients send to Server through RPCs
--- Server send to Client through netvars
-----------------------------------------------------------------------
+local AggroSystem = GLOBAL.require("aggrosystem")
+local StaminaHelper = GLOBAL.require("staminahelper")
+local StaminaBadge = GLOBAL.require("widgets/staminabadge")
+local SPRINTKEY = GetModConfigData("SPRINTKEY")
+
+Assets = {
+  Asset("ANIM", "anim/status_stamina.zip")
+}
+
 local function InGame()
   return GLOBAL.ThePlayer and GLOBAL.ThePlayer.HUD and not GLOBAL.ThePlayer.HUD:HasInputFocus()
 end
----
+
+----------------------------------------------------------------------
+-- client to server communication
+----------------------------------------------------------------------
+
+-- here server receives and grants client request
 local function WantsToSprint(inst, flag)
 	if inst and inst.components and inst.components.stamina then
     inst.components.stamina:SetWantsToSprint(flag)
   end
 end
+
+-- rpc handler sends client requests to server
 AddModRPCHandler(modname, "WantsToSprint", WantsToSprint)
----
+
+-- the actual client request that will be sent to server
+-- handles user request to sprint
 local last_key_pressed = false
 local function SendSprintRPC(key_pressed)
-  -- check if player is dead
   local player = GLOBAL.ThePlayer;
-  if player and player:HasTag("playerghost") then return end
+  if player and player:HasTag("playerghost") then return end   -- exit if player is dead
 
-  -- if key state hasn't changed or
-  -- if game not active, don't send request
-  if (last_key_pressed and key_pressed) or (key_pressed and not InGame()) then return end
+  if (last_key_pressed and key_pressed) -- if key state hasn't changed or
+     or (key_pressed and not InGame()) then return end -- if game not active, exit
 
   --note: if press == false and game not active, I'll send the request
 	SendModRPCToServer(GetModRPC(modname, "WantsToSprint"), key_pressed)
-
-  -- keep track of key state
   last_key_pressed = key_pressed
 end
-----------------------------------------------------------------------
--- KEYBINDINGS
-----------------------------------------------------------------------
-local SPRINTKEY = GetModConfigData("SPRINTKEY")
+
+-- client triggers requests to server through key press
 GLOBAL.TheInput:AddKeyDownHandler(SPRINTKEY, function(inst) SendSprintRPC(true) end)
 GLOBAL.TheInput:AddKeyUpHandler(SPRINTKEY, function(inst) SendSprintRPC(false) end)
+
 ----------------------------------------------------------------------
-local StaminaHelper = GLOBAL.require("staminahelper")
+-- server to client communication
 ----------------------------------------------------------------------
--- NETVARS
--- Add stamina netvars to player classified
-----------------------------------------------------------------------
+
+-- player_classified/replicas used for server to client comms
+AddReplicableComponent("stamina")
+
 local function AddStaminaClassified(inst)
   -- WARNING: some of this code needs to be run on the client
   -- if by mistake, you force it to only run on the server, side effects will occur.
-  -- in my case, the UI badge values, like stamina, will not update.
+  -- in my case, the UI badge values, like hunger, will not update.
   StaminaHelper.SetupNetvars(inst)
   inst:DoTaskInTime(0, StaminaHelper.RegisterNetListeners)
 end
----
+
+-- server updates the client by using stamina netvars on the player_classified
 AddPrefabPostInit("player_classified", AddStaminaClassified)
+
 ----------------------------------------------------------------------
--- ADD AGGROED STATE to combat
+-- modify combat so we're notified when players aggro
 ----------------------------------------------------------------------
-local function AddAggroSystem(self)
-  self.has_aggro = false
-  self.aggroed_enemies = {}
-  ---
-  self.GetTargeted = function(self, attacker)
-    if not attacker or not self.inst:HasTag("player") then return end
 
-    local guid = attacker.entity:GetGUID()
-    self.aggroed_enemies[tostring(guid)] = attacker
+AddComponentPostInit("combat", AggroSystem.ModifyCombatSystem)
 
-    -- seems when attacker is killed, DropTarget() isn't called.
-    -- So here before attacker dies I make the call.
-    -- *potential bug*: can entities get removed w/o dying?
-    -- if that happens we'd be in aggro forever.
-    -- I could listen for "onremove" but there's a noticeable
-    -- delay before we lose aggro...
-    attacker:ListenForEvent("death", function()
-      self:GetUntargeted(attacker)
-    end)
-
-    self.has_aggro = true
-  end
-  ---
-  self.GetUntargeted = function(self, attacker)
-    if not attacker or not self.inst:HasTag("player") then return end
-
-    local guid = attacker.entity:GetGUID()
-    self.aggroed_enemies[tostring(guid)] = nil -- this removes the table entry
-
-    -- # - length of array
-    if #self.aggroed_enemies == 0 then
-      self.has_aggro = false
-    end
-  end
-  ---
-  -- Override to notify player when being targeted
-  ---
-  local old_engagetarget = self.EngageTarget
-  self.EngageTarget = function(self, target)
-    old_engagetarget(self, target)
-    if self.inst:HasTag("player") then return end
-    if target and target.components and target.components.combat then
-      target.components.combat:GetTargeted(self.inst);
-    end
-  end
-  ---
-  -- Override to notify player when not being targeted anymore
-  ---
-  local old_droptarget = self.DropTarget
-  self.DropTarget = function(self, hasnexttarget)
-    if not self.inst:HasTag("player") and self.target and self.target.components and self.target.components.combat then
-      self.target.components.combat:GetUntargeted(self.inst);
-    end
-    old_droptarget(self, hasnexttarget)
-  end
-end
-AddComponentPostInit("combat", AddAggroSystem)
 ----------------------------------------------------------------------
--- APPLY TO PLAYER PREFABS
+-- add stamina component to players
 ----------------------------------------------------------------------
+
 GLOBAL.TUNING.WILSON_STAMINA = 100
-GLOBAL.TUNING.STAMINA_PENALTY = 0.25
-GLOBAL.TUNING.MAXIMUM_STAMINA_PENALTY = 0.75
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I can't sprint right now!"
--- i think i like this for the 25% threshold
--- GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_FULL = "Finally caught my breath!"
----
+
 local function AddStaminaComponent(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
+
   inst:AddComponent("stamina")
   inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
 
@@ -137,62 +88,47 @@ local function AddStaminaComponent(inst)
 
   inst:ListenForEvent("staminadisabled", function(inst, data)
     inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
-end)
-
-  -- inst:ListenForEvent("staminafull", function(inst, data)
-  --   inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_FULL"))
-  -- end)
+  end)
 end
----
-AddPlayerPostInit(AddStaminaComponent)
-----------------------------------------------------------------------
--- USER INTERFACE
--- Add Stamina Badge to Status Display
-----------------------------------------------------------------------
-local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 
-Assets = {
-  Asset("ANIM", "anim/status_stamina.zip")
-}
+-- called on each player spawned
+AddPlayerPostInit(AddStaminaComponent)
+
+----------------------------------------------------------------------
+-- user interface - implements stamina badge
+----------------------------------------------------------------------
 
 AddClassPostConstruct("widgets/statusdisplays", function(self)
-  ----------------------------------------------------------------------
-  -- Show/Hide StaminaBadge Status value
-  ----------------------------------------------------------------------
+  -- show/hide badge value
   local old_ShowStatusNumbers = self.ShowStatusNumbers
   self.ShowStatusNumbers = function(self)
     StaminaHelper.ShowStatusNumbers(self, old_ShowStatusNumbers)
   end
-  ---
   local old_HideStatusNumbers = self.HideStatusNumbers
   self.HideStatusNumbers = function(self)
     StaminaHelper.HideStatusNumbers(self, old_HideStatusNumbers)
   end
-  ----------------------------------------------------------------------
-  -- Set data percentage for StaminaBadge
-  ----------------------------------------------------------------------
+
+  -- sets value that affects the actual value
+  -- and the visual level in the badge
   self.SetStaminaPercent = function(self, pct)
     StaminaHelper.SetStaminaPercent(self, pct)
   end
-  ---
   self.StaminaDelta = function(self, data)
     StaminaHelper.StaminaDelta(self, data)
   end
-  ----------------------------------------------------------------------
-  -- Show/Hide StaminaBadge Status value depending on ghost mode
-  ----------------------------------------------------------------------
+
+  -- show/hide badge
   local old_SetGhostMode = self.SetGhostMode
   self.SetGhostMode = function(self, ghostmode)
     StaminaHelper.SetGhostMode(self, ghostmode, old_SetGhostMode)
   end
-  ----------------------------------------------------------------------
-  -- Creates actual Stamina badge drawn on HUD
-  ----------------------------------------------------------------------
+
+  -- creates and positions badge on HUD
   self.brain:SetPosition(40, -55, 0) -- move sanity
   self.lungs = self:AddChild(StaminaBadge(self.owner))
   self.lungs:SetPosition(-40, -55, 0)
   self.onstaminadelta = nil
   self.staminapenalty = 0
   self:SetGhostMode(false)
-  ---
 end)

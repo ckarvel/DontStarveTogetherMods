@@ -246,11 +246,9 @@ function Stamina:OnUpdate(dt)
 
   -- Are we in cooldown?
   if self.needcooldown or is_in_combat(self.inst) then
-    if self.usingstamina then -- if aggro while sprinting, stop
-      self:ResetPlayerSpeed()
-    end
     -- warn user when can't use stamina
-    if self.wants_to_sprint and
+    if self.usingstamina or -- if just got targeted while sprinting, warn
+       self.wants_to_sprint and
        self.old_wants_to_sprint ~= self.wants_to_sprint and
        not self.gave_empty_warning then
 
@@ -259,6 +257,11 @@ function Stamina:OnUpdate(dt)
         self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
         self.old_wants_to_sprint = self.wants_to_sprint
     end
+
+    if self.usingstamina then -- if aggro while sprinting, stop
+      self:ResetPlayerSpeed()
+    end
+
     if CanStaminaRegen(self) then
       self:DoDelta(self.rateup * dt, true) -- increase stamina
     end
