@@ -60,30 +60,55 @@ AddPrefabPostInit("player_classified", AddStaminaClassified)
 ----------------------------------------------------------------------
 local function AddAggroSystem(self)
   self.has_aggro = false
+  self.aggroed_enemies = {}
   ---
-  self.GetTargeted = function(attacker)
+  self.GetTargeted = function(self, attacker)
+    if not attacker or not self.inst:HasTag("player") then return end
+
+    local guid = attacker.entity:GetGUID()
+    self.aggroed_enemies[tostring(guid)] = attacker
+
+    -- seems when attacker is killed, DropTarget() isn't called.
+    -- So here before attacker dies I make the call.
+    -- *potential bug*: can entities get removed w/o dying?
+    -- if that happens we'd be in aggro forever.
+    -- I could listen for "onremove" but there's a noticeable
+    -- delay before we lose aggro...
+    attacker:ListenForEvent("death", function()
+      self:GetUntargeted(attacker)
+    end)
+
     self.has_aggro = true
   end
   ---
-  self.GetUntargeted = function()
-    self.has_aggro = false
+  self.GetUntargeted = function(self, attacker)
+    if not attacker or not self.inst:HasTag("player") then return end
+
+    local guid = attacker.entity:GetGUID()
+    self.aggroed_enemies[tostring(guid)] = nil -- this removes the table entry
+
+    -- # - length of array
+    if #self.aggroed_enemies == 0 then
+      self.has_aggro = false
+    end
   end
-  ---
-  local old_engagetarget = self.EngageTarget
   ---
   -- Override to notify player when being targeted
   ---
+  local old_engagetarget = self.EngageTarget
   self.EngageTarget = function(self, target)
     old_engagetarget(self, target)
+    if self.inst:HasTag("player") then return end
     if target and target.components and target.components.combat then
       target.components.combat:GetTargeted(self.inst);
     end
   end
   ---
-  local old_droptarget = self.DropTarget
+  -- Override to notify player when not being targeted anymore
   ---
+  local old_droptarget = self.DropTarget
   self.DropTarget = function(self, hasnexttarget)
-    if self.target and self.target.components and self.target.components.combat then
+    if not self.inst:HasTag("player") and self.target and self.target.components and self.target.components.combat then
       self.target.components.combat:GetUntargeted(self.inst);
     end
     old_droptarget(self, hasnexttarget)
@@ -96,7 +121,8 @@ AddComponentPostInit("combat", AddAggroSystem)
 GLOBAL.TUNING.WILSON_STAMINA = 100
 GLOBAL.TUNING.STAMINA_PENALTY = 0.25
 GLOBAL.TUNING.MAXIMUM_STAMINA_PENALTY = 0.75
-GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm too tired!"
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I can't sprint right now!"
 -- i think i like this for the 25% threshold
 -- GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_FULL = "Finally caught my breath!"
 ---
@@ -108,6 +134,10 @@ local function AddStaminaComponent(inst)
   inst:ListenForEvent("staminaempty", function(inst, data)
       inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
   end)
+
+  inst:ListenForEvent("staminadisabled", function(inst, data)
+    inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
+end)
 
   -- inst:ListenForEvent("staminafull", function(inst, data)
   --   inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_FULL"))

@@ -44,6 +44,8 @@ local Stamina = Class(function(self, inst)
   self.cooldowntask = nil
   self.time = nil
   self.sprintspeedmult = 1.55 -- in between saddle basic and walking cane
+  self.gave_empty_warning = false
+  self.warning_interval = 10 -- when user tries to sprint but can't
   self.inst:StartUpdatingComponent(self)
 end,
 nil,
@@ -244,6 +246,19 @@ function Stamina:OnUpdate(dt)
 
   -- Are we in cooldown?
   if self.needcooldown or is_in_combat(self.inst) then
+    if self.usingstamina then -- if aggro while sprinting, stop
+      self:ResetPlayerSpeed()
+    end
+    -- warn user when can't use stamina
+    if self.wants_to_sprint and
+       self.old_wants_to_sprint ~= self.wants_to_sprint and
+       not self.gave_empty_warning then
+
+        self.inst:PushEvent("staminadisabled")
+        self.gave_empty_warning = true
+        self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
+        self.old_wants_to_sprint = self.wants_to_sprint
+    end
     if CanStaminaRegen(self) then
       self:DoDelta(self.rateup * dt, true) -- increase stamina
     end
