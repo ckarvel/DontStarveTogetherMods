@@ -1,5 +1,9 @@
 local StaminaHelper = {}
+
 --------------------------------------------------------------------------
+-- NETWORKING: Netvar setup/register-listeners/updates
+--------------------------------------------------------------------------
+
 StaminaHelper.OnStaminaDirty = function(inst)
   if inst._parent ~= nil then
     local oldpercent = inst._oldstaminapercent
@@ -24,13 +28,13 @@ StaminaHelper.OnStaminaDirty = function(inst)
     inst.isstaminapulsedown:set_local(false)
   end
 end
---------------------------------------------------------------------------
+-----------------------------------
 local function SetDirty(netvar, val)
   --Forces a netvar to be dirty regardless of value
   netvar:set_local(val)
   netvar:set(val)
 end
---------------------------------------------------------------------------
+-----------------------------------
 StaminaHelper.OnStaminaDelta = function(parent, data)
   if data.newpercent > data.oldpercent then
     --Force dirty, we just want to trigger an event on the client
@@ -40,7 +44,7 @@ StaminaHelper.OnStaminaDelta = function(parent, data)
     SetDirty(parent.player_classified.isstaminapulsedown, true)
   end
 end
---------------------------------------------------------------------------
+-----------------------------------
 StaminaHelper.RegisterNetListeners = function(inst)
   if TheWorld.ismastersim then
     inst._parent = inst.entity:GetParent()
@@ -54,7 +58,7 @@ StaminaHelper.RegisterNetListeners = function(inst)
     end
   end
 end
---------------------------------------------------------------------------
+-----------------------------------
 StaminaHelper.SetupNetvars = function(inst)
   --Stamina variables
   inst.currentstamina = net_ushortint(inst.GUID, "stamina.currentstamina", "staminadirty")
@@ -66,17 +70,21 @@ StaminaHelper.SetupNetvars = function(inst)
   inst.currentstamina:set(100)
   inst.maxstamina:set(100)
 end
+
 --------------------------------------------------------------------------
+-- UI BADGE
+--------------------------------------------------------------------------
+
 StaminaHelper.ShowStatusNumbers = function(self, callback)
   callback(self)
   self.lungs.num:Show()
 end
---------------------------------------------------------------------------
+-----------------------------------
 StaminaHelper.HideStatusNumbers = function(self, callback)
   callback(self)
   self.lungs.num:Hide()
 end
---------------------------------------------------------------------------
+-----------------------------------
 local function OnSetPlayerMode(self)
   if self.owner.replica and self.owner.replica.stamina then
     if self.onstaminadelta == nil then
@@ -86,14 +94,14 @@ local function OnSetPlayerMode(self)
     end
   end
 end
---------------------------------------------------------------------------
+-----------------------------------
 local function OnSetGhostMode(self)
   if self.onstaminadelta ~= nil then
     self.inst:RemoveEventCallback("staminadelta", self.onstaminadelta, self.owner)
     self.onstaminadelta = nil
   end
 end
---------------------------------------------------------------------------
+-----------------------------------
 StaminaHelper.SetGhostMode = function(self, ghostmode, callback)
   callback(self, ghostmode)
   if ghostmode then
@@ -104,24 +112,14 @@ StaminaHelper.SetGhostMode = function(self, ghostmode, callback)
     OnSetPlayerMode(self)
   end
 end
---------------------------------------------------------------------------
+-----------------------------------
 StaminaHelper.SetStaminaPercent = function(self, pct)
   self.lungs:SetPercent(pct, self.owner.replica.stamina:Max())
-  -- if pct <= 0 then self.lungs:StartWarning() else self.lungs:StopWarning() end
 end
---------------------------------------------------------------------------
+-----------------------------------
 StaminaHelper.StaminaDelta = function(self, data)
   self:SetStaminaPercent(data.newpercent)
-  -- Don't want sound or pulsing
-  -- if not data.overtime then
-  --     if data.newpercent > data.oldpercent then
-  --         self.lungs:PulseGreen()
-          -- TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/hunger_up")
-  --     elseif data.newpercent < data.oldpercent then
-          -- TheFrontEnd:GetSound():PlaySound("dontstarve/HUD/hunger_down")
-  --         self.lungs:PulseRed()
-  --     end
-  -- end
 end
 --------------------------------------------------------------------------
+
 return StaminaHelper
