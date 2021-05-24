@@ -124,11 +124,48 @@ AddClassPostConstruct("widgets/statusdisplays", function(self)
     StaminaHelper.SetGhostMode(self, ghostmode, old_SetGhostMode)
   end
 
-  -- creates and positions badge on HUD
-  self.brain:SetPosition(40, -55, 0) -- move sanity
   self.lungs = self:AddChild(StaminaBadge(self.owner))
-  self.lungs:SetPosition(-40, -55, 0)
   self.onstaminadelta = nil
   self.staminapenalty = 0
   self:SetGhostMode(false)
+
+  if self.pethealthbadge ~= nil then -- wendy
+    self.lungs:SetPosition(0,-160,0)
+  elseif self.inspirationbadge ~= nil then -- wigfrid
+    local heart_pos = self.heart:GetPosition()
+    local inspiration_pos = self.inspirationbadge:GetPosition()
+    self.lungs:SetPosition(heart_pos.x,inspiration_pos.y-60,0)
+  else -- all other players
+    -- copy wendy's widget layout
+    self.lungs:SetPosition(40, -100, 0)
+    self.moisturemeter:SetPosition(-40, -100, 0)
+  end
+end)
+
+----------------------------------------------------------------------
+-- compatability with CombinedStatus mod
+----------------------------------------------------------------------
+
+local function AddOffset(badge, value)
+  if not badge then return end
+  local position = badge:GetPosition()
+  new_position = position + value
+  badge:SetPosition(new_position)
+end
+
+AddSimPostInit(function(inst)
+  -- check if using CombinedStatus mod
+  if not GLOBAL.KnownModIndex:IsModEnabled("workshop-376333686") then return end
+
+  -- modify badge positions
+  AddClassPostConstruct("widgets/statusdisplays", function(self)
+      self.lungs:SetPosition(self.moisturemeter:GetPosition())
+      local heart_pos = self.heart:GetPosition()
+      AddOffset(self.moisturemeter,  GLOBAL.Vector3(heart_pos.x, 0, 0))
+      AddOffset(self.temperature,    GLOBAL.Vector3(0,         -90, 0))
+      AddOffset(self.tempbadge,      GLOBAL.Vector3(0,         -90, 0))
+      AddOffset(self.naughtiness,    GLOBAL.Vector3(0,         -90, 0))
+      AddOffset(self.worldtemp,      GLOBAL.Vector3(0,         -90, 0))
+      AddOffset(self.worldtempbadge, GLOBAL.Vector3(0,         -90, 0))
+  end)
 end)
