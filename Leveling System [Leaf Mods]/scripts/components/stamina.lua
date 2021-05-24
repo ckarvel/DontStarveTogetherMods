@@ -18,15 +18,17 @@ local function onusingstamina(self, flag)
   self.inst.replica.stamina:SetUsingStamina(flag)
 end
 ----------------------------------------------------------------------
+local function ondisabled(self, flag)
+  self.inst.replica.stamina:SetDisabled(flag)
+end
+----------------------------------------------------------------------
 local Stamina = Class(function(self, inst)
   self.inst = inst
   self.maxstamina = 100
   self.minstamina = 0
   self.currentstamina = self.maxstamina
-  -- keeps track of button state for sprinting
-  self.wants_to_sprint = false
+  self.wants_to_sprint = false -- keeps track of button state for sprinting
   self.old_wants_to_sprint = false
-
   self.usingstamina = false
   -- I want:
     -- 1. empty after 12s
@@ -36,16 +38,13 @@ local Stamina = Class(function(self, inst)
   -- actual values going up/down every second
   self.ratedown = 8.33
   self.rateup = 2.22
-  -- I want user to wait... 2 seconds before stamina starts regen'ing
-  -- hmm, maybe we should have a... you need 25% regenerated before you can run again
-  -- instead of allowing ms runs lol
-  self.cooldownperiod = 0 -- TODO i dont think i want this anymore
   self.needcooldown = false
   self.cooldowntask = nil
   self.time = nil
   self.sprintspeedmult = 1.55 -- in between saddle basic and walking cane
   self.gave_empty_warning = false
   self.warning_interval = 10 -- when user tries to sprint but can't
+  self.disabled = false -- player aggroed enemies?
   self.inst:StartUpdatingComponent(self)
 end,
 nil,
@@ -54,6 +53,7 @@ nil,
   currentstamina = oncurrentstamina,
   wants_to_sprint = onwantstosprint,
   usingstamina = onusingstamina,
+  disabled = ondisabled,
 })
 ----------------------------------------------------------------------
 function Stamina:ForceUpdateHUD(overtime)
@@ -76,10 +76,6 @@ function Stamina:OnLoad(data)
   if data.currentstamina ~= nil then
     self:SetVal(data.currentstamina, "file_load")
     self:ForceUpdateHUD(true)
-  elseif data.percent ~= nil then
-    -- used for setpieces!
-    -- SetPercent already calls ForceUpdateHUD
-    self:SetPercent(data.percent, true, "file_load")
   end
 end
 ----------------------------------------------------------------------
@@ -201,9 +197,6 @@ local function PrintInterval(self, dt, interval)
   end
 end
 ----------------------------------------------------------------------
--- Stamina cannot regen if ANY of these are true
--- 1. stamina bar full
-----------------------------------------------------------------------
 local function CanStaminaRegen(self)
   if self:IsFull() then
     return false
@@ -211,30 +204,39 @@ local function CanStaminaRegen(self)
   return true
 end
 ----------------------------------------------------------------------
-function Stamina:StopCooldown()
-  if self.cooldowntask ~= nil then
-    self.cooldowntask:Cancel()
-    self.cooldowntask = nil
-  end
-end
-----------------------------------------------------------------------
 local function is_dead(inst)
   if inst:HasTag("playerghost") then return true end
   return false
 end
-
 ----------------------------------------------------------------------
 local function is_moving(inst)
   if inst.sg and inst.sg:HasStateTag("moving") then return true end
   return false
 end
-
 ----------------------------------------------------------------------
-local function is_in_combat(inst)
-  if inst.components and inst.components.combat then
-    if inst.components.combat.has_aggro then return true end
-  end
+local function is_incombat(inst)
+  if inst.components and inst.components.combat and
+     inst.components.combat.has_aggro then return true end
   return false
+end
+----------------------------------------------------------------------
+local function is_mounted(inst)
+  if inst.components and inst.components.rider and
+     inst.components.rider:IsRiding() then return true end
+  return false
+end
+----------------------------------------------------------------------
+local function is_weremode(inst)
+  if inst:HasTag("wereplayer") then return true end
+  return false
+end
+----------------------------------------------------------------------
+local function is_disabled(self)
+  self.disabled = false
+  if is_incombat(self.inst) or is_mounted(self.inst) or is_weremode(self.inst) then
+    self.disabled = true
+  end
+  return self.disabled
 end
 ----------------------------------------------------------------------
 -- MAIN LOOP
@@ -242,10 +244,15 @@ end
 -- Note: Here using_stamina means player is holding down the shift button
 ----------------------------------------------------------------------
 function Stamina:OnUpdate(dt)
-  if is_dead(self.inst) then return end
+  if is_dead(self.inst) then
+    if self.usingstamina then
+      self:ResetPlayerSpeed()
+    end
+    return -- exit if dead
+  end
 
-  -- Are we in cooldown?
-  if self.needcooldown or is_in_combat(self.inst) then
+  local isdisabled = is_disabled(self) -- called every loop to update mode
+  if self.needcooldown or isdisabled then
     -- warn user when can't use stamina
     if self.usingstamina or -- if just got targeted while sprinting, warn
        self.wants_to_sprint and
