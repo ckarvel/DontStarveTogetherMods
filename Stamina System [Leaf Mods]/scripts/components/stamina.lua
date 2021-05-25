@@ -253,6 +253,7 @@ function Stamina:OnUpdate(dt)
 
   local isdisabled = is_disabled(self) -- called every loop to update mode
   if self.needcooldown or isdisabled then
+      self.disabled = true -- disabled while in cooldown
     -- warn user when can't use stamina
     if self.usingstamina or -- if just got targeted while sprinting, warn
        self.wants_to_sprint and
