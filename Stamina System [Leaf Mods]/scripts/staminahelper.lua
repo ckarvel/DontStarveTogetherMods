@@ -40,7 +40,6 @@ StaminaHelper.OnStaminaDelta = function(parent, data)
     --Force dirty, we just want to trigger an event on the client
     SetDirty(parent.player_classified.isstaminapulseup, true)
   elseif data.newpercent < data.oldpercent then
-    --Force dirty, we just want to trigger an event on the client
     SetDirty(parent.player_classified.isstaminapulsedown, true)
   end
 end
@@ -63,7 +62,6 @@ StaminaHelper.SetupNetvars = function(inst)
   --Stamina variables
   inst.currentstamina = net_ushortint(inst.GUID, "stamina.currentstamina", "staminadirty")
   inst.maxstamina = net_ushortint(inst.GUID, "stamina.maxstamina", "staminadirty")
-  inst.staminapenalty = net_byte(inst.GUID, "stamina.penalty", "staminadirty")
   -- stamina pulse aka, stamina going up or down over time (regenerating)
   inst.isstaminapulseup = net_bool(inst.GUID, "stamina.dodeltaovertime(up)", "staminadirty")
   inst.isstaminapulsedown = net_bool(inst.GUID, "stamina.dodeltaovertime(down)", "staminadirty")

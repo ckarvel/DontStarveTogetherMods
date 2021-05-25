@@ -160,16 +160,9 @@ function Stamina:SetValue(value, cause)
   if self.needcooldown and self.currentstamina >= 25 then
     self.needcooldown = false
   end
-  -- elseif self.currentstamina > 0 then
-  --   -- maybe food can cancel cooldown in the future?
-  --   if self.cooldowntask ~= nil then
-  --     self.cooldowntask:Cancel()
-  --     self.cooldowntask = nil
-  --   end
-  --   self.needcooldown = false
 end
 ----------------------------------------------------------------------
--- [Event Push] Sets stamina percentage (used for UI?)
+-- [Event Push] Sets stamina percentage
 -- overtime: True if amount is supposed to be given over time?
 ----------------------------------------------------------------------
 function Stamina:DoDelta(amount, overtime, cause)
@@ -241,7 +234,6 @@ end
 ----------------------------------------------------------------------
 -- MAIN LOOP
 -- This is called every tick (33ms) after StartUpdatingComponent is called
--- Note: Here using_stamina means player is holding down the shift button
 ----------------------------------------------------------------------
 function Stamina:OnUpdate(dt)
   if is_dead(self.inst) then

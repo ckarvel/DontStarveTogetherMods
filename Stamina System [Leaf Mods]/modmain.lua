@@ -126,7 +126,6 @@ AddClassPostConstruct("widgets/statusdisplays", function(self)
 
   self.lungs = self:AddChild(StaminaBadge(self.owner))
   self.onstaminadelta = nil
-  self.staminapenalty = 0
   self:SetGhostMode(false)
 
   if self.pethealthbadge ~= nil then -- wendy
