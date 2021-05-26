@@ -16,6 +16,9 @@ AggroSystem.GetTargeted = function(self, attacker)
   attacker:ListenForEvent("death", function()
     self:GetUntargeted(attacker)
   end)
+  attacker:ListenForEvent("onremove", function()
+    self:GetUntargeted(attacker)
+  end)
 end
 --------------------------------------------------------------------------
 AggroSystem.GetUntargeted = function(self, attacker)
