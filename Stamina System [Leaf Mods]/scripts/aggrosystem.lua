@@ -16,6 +16,7 @@ AggroSystem.GetTargeted = function(self, attacker)
   attacker:ListenForEvent("death", function()
     self:GetUntargeted(attacker)
   end)
+  -- TODO: this may solve the hounded but should figure that out
   attacker:ListenForEvent("onremove", function()
     self:GetUntargeted(attacker)
   end)

@@ -1,8 +1,6 @@
 ----------------------------------------------------------------------
 -- Craft cheaper Magiluminescence amulet
 ----------------------------------------------------------------------
-GLOBAL.TUNING.MOONLACE_BUFFS = GetModConfigData("Item Buffs")
-
 PrefabFiles =
 {
 	"moonlace"
