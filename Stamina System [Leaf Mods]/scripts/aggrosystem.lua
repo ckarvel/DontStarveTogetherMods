@@ -3,31 +3,30 @@ local AggroSystem = {}
 AggroSystem.GetTargeted = function(self, attacker)
   if not attacker or not self.inst:HasTag("player") then return end
 
-  local guid = attacker.entity:GetGUID()
-  self.aggroed_enemies[tostring(guid)] = attacker
+  local guid = tostring(attacker.entity:GetGUID())
+  self.aggroed_enemies[guid] = attacker
   self.has_aggro = true
 
-  -- seems when attacker is killed, DropTarget() isn't called.
-  -- So here before attacker dies I make the call.
-  -- *potential bug*: can entities get removed w/o dying?
-  -- if that happens we'd be in aggro forever.
-  -- I could listen for "onremove" but there's a noticeable
-  -- delay before we lose aggro...
+  -- on enemy death it seems DropTarget() isn't called
+  -- make callback here
   attacker:ListenForEvent("death", function()
     self:GetUntargeted(attacker)
   end)
-  -- TODO: this may solve the hounded but should figure that out
+  -- need this for shadow creatures
   attacker:ListenForEvent("onremove", function()
     self:GetUntargeted(attacker)
   end)
 end
 --------------------------------------------------------------------------
 AggroSystem.GetUntargeted = function(self, attacker)
+  -- this is repeatedly called
+  -- lets early exit if player has no aggro
+  if not self.has_aggro then return end
   if not attacker or not self.inst:HasTag("player") then return end
 
-  local guid = attacker.entity:GetGUID()
+  local guid = tostring(attacker.entity:GetGUID())
   -- this is lua's way to say this element is deleted but its like... not actually removed...
-  self.aggroed_enemies[tostring(guid)] = nil 
+  self.aggroed_enemies[guid] = nil
 
   -- GetTableSize counts the #entries whose value != nil so ^ works for getting
   -- accurate table size
