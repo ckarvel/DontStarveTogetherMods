@@ -207,28 +207,9 @@ local function is_moving(inst)
   return false
 end
 ----------------------------------------------------------------------
-local function verify_incombat(inst)
-  -- handle when enemies are "asleep" (not dead & not in scene)
-  local player_guid = inst.entity:GetGUID()
-  local enemies = inst.components.combat.aggroed_enemies
-  for _, enemy in pairs(enemies) do
-    if enemy and enemy.components.combat then
-      local target = enemy.components.combat.target
-      if target == nil or
-         target.entity:GetGUID() ~= player_guid or
-         enemy:IsAsleep() then
-        inst.components.combat:GetUntargeted(enemy) -- remove this enemy
-      end
-    end
-  end
-end
-----------------------------------------------------------------------
 local function is_incombat(inst)
   if inst.components and inst.components.combat then
-    if inst.components.combat.has_aggro then
-      verify_incombat(inst) -- updates has_aggro
-      return inst.components.combat.has_aggro
-    end
+    return inst.components.combat.has_aggro
   end
   return false
 end
