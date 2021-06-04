@@ -1,4 +1,3 @@
-local AggroSystem = GLOBAL.require("aggrosystem")
 local StaminaHelper = GLOBAL.require("staminahelper")
 local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 local SPRINTKEY = GetModConfigData("SPRINTKEY")
@@ -10,6 +9,57 @@ Assets = {
 local function InGame()
   return GLOBAL.ThePlayer and GLOBAL.ThePlayer.HUD and not GLOBAL.ThePlayer.HUD:HasInputFocus()
 end
+
+----------------------------------------------------------------------
+-- add stamina/aggro components to players
+----------------------------------------------------------------------
+
+GLOBAL.TUNING.WILSON_STAMINA = 100
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I can't sprint right now!"
+
+local function AddSystemComponents(inst)
+  if not GLOBAL.TheWorld.ismastersim then return end
+
+  inst:AddComponent("stamina")
+  inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
+  inst:ListenForEvent("staminaempty", function(inst, data)
+      inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
+  end)
+  inst:ListenForEvent("staminadisabled", function(inst, data)
+    inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
+  end)
+
+  inst:AddComponent("aggro")
+end
+
+-- called on each player spawned
+AddPlayerPostInit(AddSystemComponents)
+
+----------------------------------------------------------------------
+-- modify combat so we're notified when players are in/out of combat
+----------------------------------------------------------------------
+local function NotifyCombatState(self)
+  -- in combat
+  local old_engagetarget = self.EngageTarget
+  self.EngageTarget = function(self, target)
+    old_engagetarget(self, target)
+    if self.target and self.target.components.aggro then
+      self.target.components.aggro:AddActiveEnemy(self.inst)
+    end
+  end
+
+  -- out of combat
+  local old_droptarget = self.DropTarget
+  self.DropTarget = function(self, hasnexttarget)
+    if self.target and self.target.components.aggro then
+      self.target.components.aggro:RemoveEnemy(self.inst)
+    end
+    old_droptarget(self, hasnexttarget)
+  end
+end
+
+AddComponentPostInit("combat", NotifyCombatState)
 
 ----------------------------------------------------------------------
 -- client to server communication
@@ -61,38 +111,6 @@ end
 
 -- server updates the client by using stamina netvars on the player_classified
 AddPrefabPostInit("player_classified", AddStaminaClassified)
-
-----------------------------------------------------------------------
--- modify combat so we're notified when players aggro
-----------------------------------------------------------------------
-
-AddComponentPostInit("combat", AggroSystem.ModifyCombatSystem)
-
-----------------------------------------------------------------------
--- add stamina component to players
-----------------------------------------------------------------------
-
-GLOBAL.TUNING.WILSON_STAMINA = 100
-GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
-GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I can't sprint right now!"
-
-local function AddStaminaComponent(inst)
-  if not GLOBAL.TheWorld.ismastersim then return end
-
-  inst:AddComponent("stamina")
-  inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
-
-  inst:ListenForEvent("staminaempty", function(inst, data)
-      inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
-  end)
-
-  inst:ListenForEvent("staminadisabled", function(inst, data)
-    inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
-  end)
-end
-
--- called on each player spawned
-AddPlayerPostInit(AddStaminaComponent)
 
 ----------------------------------------------------------------------
 -- user interface - implements stamina badge
