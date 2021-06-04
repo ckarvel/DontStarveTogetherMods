@@ -203,20 +203,21 @@ local function is_dead(inst)
 end
 ----------------------------------------------------------------------
 local function is_moving(inst)
-  if inst.sg and inst.sg:HasStateTag("moving") then return true end
+  if inst.sg:HasStateTag("moving") then return true end
   return false
 end
 ----------------------------------------------------------------------
 local function is_incombat(inst)
-  if inst.components and inst.components.combat then
-    return inst.components.combat.has_aggro
+  if inst.components.aggro then
+    return inst.components.aggro:IsInCombat()
   end
   return false
 end
 ----------------------------------------------------------------------
 local function is_mounted(inst)
-  if inst.components and inst.components.rider and
-     inst.components.rider:IsRiding() then return true end
+  if inst.components.rider then
+    return inst.components.rider:IsRiding()
+  end
   return false
 end
 ----------------------------------------------------------------------

@@ -1,12 +1,7 @@
 local Aggro = Class(function(self, inst)
   self.inst = inst
-  self.incombat = false
-  self.enemies = { active = {}, asleep = {} }
+  self.enemies = { total = {}, asleep = {} }
 end)
---------------------------------------------------------------------------
-function Aggro:GetActiveEnemy(guid)
-  return self.enemies.active[guid]
-end
 --------------------------------------------------------------------------
 local untargetcallback = function(inst)
   local target = inst and inst.components.combat.target or nil
@@ -29,13 +24,21 @@ local onwakecallback =  function(inst)
   end
 end
 --------------------------------------------------------------------------
-function Aggro:AddActiveEnemy(enemy)
+function Aggro:GetEnemy(guid)
+  return self.enemies.total[guid]
+end
+--------------------------------------------------------------------------
+function Aggro:IsInCombat()
+  -- total # - sleeping # = active #
+  return GetTableSize(self.enemies.total) - GetTableSize(self.enemies.asleep) > 0
+end
+--------------------------------------------------------------------------
+function Aggro:AddEnemy(enemy)
   if not enemy then return end
   local guid = enemy.entity:GetGUID()
-  if self:GetActiveEnemy(guid) ~= nil then return end
+  if self:GetEnemy(guid) ~= nil then return end
 
-  self.enemies.active[guid] = enemy
-  self.incombat = true
+  self.enemies.total[guid] = enemy
 
   self.inst:ListenForEvent("death", untargetcallback, enemy) -- shouldn't enemy call DropTarget() here?
   self.inst:ListenForEvent("onremove", untargetcallback, enemy) -- shadowcreatures
@@ -58,14 +61,14 @@ end
 function Aggro:RemoveEnemy(enemy)
   if not enemy then return end
   local guid = enemy.entity:GetGUID()
-  if self:GetActiveEnemy(guid) == nil then return end
+  if self:GetEnemy(guid) == nil then return end
 
   self.inst:RemoveEventCallback("death", untargetcallback, enemy)
   self.inst:RemoveEventCallback("onremove", untargetcallback, enemy)
   self.inst:RemoveEventCallback("entitysleep", onsleepcallback, enemy)
   self.inst:RemoveEventCallback("entitywake", onwakecallback, enemy)
 
-  self.enemies.active[guid] = nil -- lua's way to remove elements
+  self.enemies.total[guid] = nil -- lua's way to remove elements
   self.enemies.asleep[guid] = nil
 end
 --------------------------------------------------------------------------

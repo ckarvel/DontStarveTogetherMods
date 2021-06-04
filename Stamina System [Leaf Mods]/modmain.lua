@@ -45,7 +45,7 @@ local function NotifyCombatState(self)
   self.EngageTarget = function(self, target)
     old_engagetarget(self, target)
     if self.target and self.target.components.aggro then
-      self.target.components.aggro:AddActiveEnemy(self.inst)
+      self.target.components.aggro:AddEnemy(self.inst)
     end
   end
 
