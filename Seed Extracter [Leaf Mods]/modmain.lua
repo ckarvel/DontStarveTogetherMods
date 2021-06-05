@@ -39,7 +39,8 @@ end
 local EXTRACTABLE =
 {
   "acorn",
-  "pinecone"
+  "pinecone",
+  "twiggy_nut"
 }
 for k,v in pairs(EXTRACTABLE) do
   AddPrefabPostInit(v, SetExtractable)
