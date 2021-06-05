@@ -1,7 +1,7 @@
 name = "Seed Extracter [Leaf Mods]"
-description = "Extract seeds from Pinecones and Birchnuts. Bonus: Seeds can be added to the Crockpot!"
+description = "Extract seeds from Pinecones, Birchnuts, and Twiggy Tree Cones. Bonus: Seeds can be added to the Crockpot!"
 author = "amoryleaf"
-version = "1.0.0"
+version = "1.1.0"
 
 forumthread = ""
 
