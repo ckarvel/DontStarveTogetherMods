@@ -1,7 +1,7 @@
 name = "Cookable Pinecones [Leaf Mods]"
-description = "Pinecones can be cooked over a fire to make toasted seeds."
+description = "Pinecones can be cooked over a fire to make toasted pinecones."
 author = "amoryleaf"
-version = "1.0.0"
+version = "1.1.0"
 
 forumthread = ""
 

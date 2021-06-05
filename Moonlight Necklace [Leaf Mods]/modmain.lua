@@ -3,7 +3,7 @@
 ----------------------------------------------------------------------
 PrefabFiles =
 {
-	"moonlace"
+  "moonlace"
 }
 
 GLOBAL.STRINGS.NAMES.MOONLACE = "Moonlace"

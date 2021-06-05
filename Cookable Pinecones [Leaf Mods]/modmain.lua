@@ -1,20 +1,28 @@
 ----------------------------------------------------------------------
 -- Cook Pinecones
 ----------------------------------------------------------------------
-local FOODTYPE = GLOBAL.FOODTYPE
+PrefabFiles =
+{
+  "pinecone_cooked"
+}
+
+GLOBAL.STRINGS.NAMES.PINECONE_COOKED = "Toasted Pine Cone"
+
 local function MakeCookable(inst)
-  inst:AddTag("icebox_valid")
-  inst:AddTag("show_spoilage")
   inst:AddTag("cookable")
   if not GLOBAL.TheWorld.ismastersim then
       return
   end
   inst:RemoveComponent("fuel")
   inst:AddComponent("cookable")
-  inst.components.cookable.product = "seeds_cooked"
-  inst:AddComponent("edible")
-  inst.components.edible.hungervalue = TUNING.CALORIES_TINY
-  inst.components.edible.healthvalue = TUNING.HEALING_TINY
-  inst.components.edible.foodtype = FOODTYPE.RAW
+  inst.components.cookable.product = "pinecone_cooked"
 end
-AddPrefabPostInit("pinecone", MakeCookable)
+
+local PineconeTypes =
+{
+  "pinecone",
+  "twiggy_nut"
+}
+for k,v in pairs(PineconeTypes) do
+  AddPrefabPostInit(v, MakeCookable)
+end
