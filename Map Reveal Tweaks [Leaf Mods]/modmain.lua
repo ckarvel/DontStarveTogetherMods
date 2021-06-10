@@ -29,7 +29,7 @@ AddModRPCHandler(modname, "RevealArea", RevealArea)
 ----------------------------------------------------------------------
 local function ModifyMapExplorer(inst)
   inst:DoPeriodicTask(TICK_RATE, function()
-    if GLOBAL.TheWorld.ismastersim or inst:HasTag("playerghost") then return end
+    if inst:HasTag("playerghost") then return end
 
     local camera_distance = math.min(GLOBAL.TheCamera:GetDistance(), MAX_CAM_DIST)
     local pos = inst:GetPosition()
