@@ -14,5 +14,8 @@ dont_starve_compatible = false
 reign_of_giants_compatible = true
 dst_compatible = true
 
+ -- I think this only needs to be on server meaning
+ -- client doesnt need to download since it checks
+ -- for tags to execute action
 all_clients_require_mod = true
 clients_only_mod = false
