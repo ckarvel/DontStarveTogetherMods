@@ -1,7 +1,7 @@
 name = "Map Reveal Tweaks [Leaf Mods]"
 description = "Radius of the map spot revealer adjusts with camera zoom."
 author = "amoryleaf"
-version = "1.0.0"
+version = "1.0.1"
 
 forumthread = ""
 
