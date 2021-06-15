@@ -177,17 +177,8 @@ function Stamina:DoDelta(amount, overtime, cause)
   return amount
 end
 ----------------------------------------------------------------------
--- debug
-local function PrintInterval(self, dt, interval)
-  if self.time == nil then
-    self.time = dt
-  elseif self.time >= interval then
-    print("========================")
-    print(self.currentstamina)
-    self.time = dt
-  else
-    self.time = self.time + dt
-  end
+function Stamina:GetDebugString()
+  return string.format("%2.2f / %2.2f, disabled: %s, state: %s", self.currentstamina, self.maxstamina, tostring(self.disabled), tostring(self.wants_to_sprint))
 end
 ----------------------------------------------------------------------
 local function CanStaminaRegen(self)
@@ -239,6 +230,7 @@ end
 ----------------------------------------------------------------------
 function Stamina:OnUpdate(dt)
   if is_dead(self.inst) then
+    self.wants_to_sprint = false
     if self.usingstamina then
       self:ResetPlayerSpeed()
     end

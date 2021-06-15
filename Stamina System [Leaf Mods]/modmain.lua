@@ -80,7 +80,10 @@ AddModRPCHandler(modname, "WantsToSprint", WantsToSprint)
 local last_key_pressed = false
 local function SendSprintRPC(key_pressed)
   local player = GLOBAL.ThePlayer;
-  if player and player:HasTag("playerghost") then return end   -- exit if player is dead
+  if player and player:HasTag("playerghost") then
+    last_key_pressed = false
+    return -- exit if player is dead
+  end
 
   if (last_key_pressed and key_pressed) -- if key state hasn't changed or
      or (key_pressed and not InGame()) then return end -- if game not active, exit
