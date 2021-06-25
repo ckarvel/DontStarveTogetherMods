@@ -1,7 +1,7 @@
 name = "Stamina System [Leaf Mods]"
 description = "Use stamina to run faster"
 author = "amoryleaf"
-version = "1.1.1"
+version = "1.1.5"
 
 forumthread = ""
 
