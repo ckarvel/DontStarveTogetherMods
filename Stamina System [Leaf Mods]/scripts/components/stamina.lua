@@ -237,23 +237,21 @@ function Stamina:OnUpdate(dt)
     return -- exit if dead
   end
 
-  local isdisabled = is_disabled(self) -- called every loop to update mode
-  if self.needcooldown or isdisabled then
-      self.disabled = true -- disabled while in cooldown
-    -- warn user when can't use stamina
+  self.disabled = is_disabled(self) -- called every loop to update mode
+  if self.needcooldown or self.disabled then
     if self.usingstamina or -- if just got targeted while sprinting, warn
        self.wants_to_sprint and
        self.old_wants_to_sprint ~= self.wants_to_sprint and
        not self.gave_empty_warning then
-
         self.inst:PushEvent("staminadisabled")
         self.gave_empty_warning = true
         self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
         self.old_wants_to_sprint = self.wants_to_sprint
     end
 
-    if self.usingstamina then -- if aggro while sprinting, stop
-      self:ResetPlayerSpeed()
+    self:ResetPlayerSpeed()
+    if self.inst:HasTag("usingstamina") then
+      self.inst:RemoveTag("usingstamina")
     end
 
     if CanStaminaRegen(self) then
@@ -272,9 +270,18 @@ function Stamina:OnUpdate(dt)
       self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
     else
       self:ResetPlayerSpeed()
+      if self.inst.sg:HasStateTag("chopping") then
+        if not self.inst:HasTag("usingstamina") then
+          self.inst:AddTag("usingstamina")
+        end
+        self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
+      end
     end
   -- Not pressing sprint button
   else
+    if self.inst:HasTag("usingstamina") then
+      self.inst:RemoveTag("usingstamina")
+    end
     if self.old_wants_to_sprint ~= self.wants_to_sprint then
       self:ResetPlayerSpeed()
       self.old_wants_to_sprint = self.wants_to_sprint

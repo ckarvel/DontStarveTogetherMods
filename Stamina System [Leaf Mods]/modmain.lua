@@ -2,8 +2,11 @@ local StaminaHelper = GLOBAL.require("staminahelper")
 local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 local SPRINTKEY = GetModConfigData("SPRINTKEY")
 
+GLOBAL.require("stategraphs/commonstates")
+
 Assets = {
-  Asset("ANIM", "anim/status_stamina.zip")
+  Asset("ANIM", "anim/status_stamina.zip"),
+  -- Asset("ANIM", "anim/fast_player_actions_axe.zip")
 }
 
 local function InGame()
@@ -16,11 +19,12 @@ end
 
 GLOBAL.TUNING.WILSON_STAMINA = 100
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
-GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I can't sprint right now!"
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I'm too tired!"
 
 local function AddSystemComponents(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
 
+  -- inst:AddTag("staminauser")
   inst:AddComponent("stamina")
   inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
   inst:ListenForEvent("staminaempty", function(inst, data)
@@ -35,6 +39,25 @@ end
 
 -- called on each player spawned
 AddPlayerPostInit(AddSystemComponents)
+
+AddStategraphPostInit("wilson", function(self)
+  for k, v in pairs(self.states) do
+    if v.name == "chop" then
+
+      -- onenter
+      local old_onenter = self.states[k].onenter
+      self.states[k].onenter = function(inst)
+        if inst:HasTag("woodcutter") then
+          old_onenter(inst)
+        elseif inst:HasTag("staminauser") then
+          inst.sg.statemem.action = inst:GetBufferedAction()
+          inst.sg.statemem.iswoodcutter = inst:HasTag("usingstamina")
+          inst.AnimState:PlayAnimation(inst.sg.statemem.iswoodcutter and "fast_chop_loop" or "chop_loop")
+        end
+      end
+    end
+  end
+end)
 
 ----------------------------------------------------------------------
 -- modify combat so we're notified when players are in/out of combat
