@@ -174,11 +174,11 @@ local function AddOffset(badge, value)
 end
 
 AddSimPostInit(function(inst)
-  -- check if using CombinedStatus mod
-  if not GLOBAL.KnownModIndex:IsModEnabled("workshop-376333686") then return end
+  -- look for combined status mod or combined status mod files
+  local using_combined_status_mod = GLOBAL.KnownModIndex:IsModEnabled("workshop-376333686") or GLOBAL.softresolvefilepath("scripts/widgets/playerbadge_combined_status.lua")
 
-  -- modify badge positions
-  AddClassPostConstruct("widgets/statusdisplays", function(self)
+  if using_combined_status_mod then -- adjust other badge positions to add stamina badge
+    AddClassPostConstruct("widgets/statusdisplays", function(self)
       self.lungs:SetPosition(self.moisturemeter:GetPosition())
       local heart_pos = self.heart:GetPosition()
       AddOffset(self.moisturemeter,  GLOBAL.Vector3(heart_pos.x, 0, 0))
@@ -187,5 +187,6 @@ AddSimPostInit(function(inst)
       AddOffset(self.naughtiness,    GLOBAL.Vector3(0,         -90, 0))
       AddOffset(self.worldtemp,      GLOBAL.Vector3(0,         -90, 0))
       AddOffset(self.worldtempbadge, GLOBAL.Vector3(0,         -90, 0))
-  end)
+    end)
+  end
 end)
