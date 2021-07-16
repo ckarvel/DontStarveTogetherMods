@@ -6,7 +6,7 @@ GLOBAL.require("stategraphs/commonstates")
 
 Assets = {
   Asset("ANIM", "anim/status_stamina.zip"),
-  -- Asset("ANIM", "anim/fast_player_actions_axe.zip")
+  Asset("ANIM", "anim/fast_player_actions_axe.zip")
 }
 
 local function InGame()
@@ -24,7 +24,7 @@ GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I'm too tired!"
 local function AddSystemComponents(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
 
-  -- inst:AddTag("staminauser")
+  inst:AddTag("staminauser")
   inst:AddComponent("stamina")
   inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
   inst:ListenForEvent("staminaempty", function(inst, data)
@@ -40,10 +40,38 @@ end
 -- called on each player spawned
 AddPlayerPostInit(AddSystemComponents)
 
+AddStategraphPostInit("wilson_client", function(self)
+  local TIMEOUT = 2
+  for k, v in pairs(self.states) do
+    if v.name == "chop_start" then
+      -- onenter
+      local old_onenter = self.states[k].onenter
+      self.states[k].onenter = function(inst)
+        if inst:HasTag("woodcutter") then
+          old_onenter(inst)
+        else
+          inst.components.locomotor:Stop()
+          if not inst:HasTag("working") then
+            if inst:HasTag("staminauser") then
+                inst.AnimState:PlayAnimation("fast_chop_pre")
+                inst.AnimState:PushAnimation("fast_chop_lag", false)
+            else
+                inst.AnimState:PlayAnimation("chop_pre")
+                inst.AnimState:PushAnimation("chop_lag", false)
+            end
+          end
+
+          inst:PerformPreviewBufferedAction()
+          inst.sg:SetTimeout(TIMEOUT)
+        end
+      end
+    end
+  end
+end)
+
 AddStategraphPostInit("wilson", function(self)
   for k, v in pairs(self.states) do
     if v.name == "chop" then
-
       -- onenter
       local old_onenter = self.states[k].onenter
       self.states[k].onenter = function(inst)
@@ -52,7 +80,18 @@ AddStategraphPostInit("wilson", function(self)
         elseif inst:HasTag("staminauser") then
           inst.sg.statemem.action = inst:GetBufferedAction()
           inst.sg.statemem.iswoodcutter = inst:HasTag("usingstamina")
-          inst.AnimState:PlayAnimation(inst.sg.statemem.iswoodcutter and "fast_chop_loop" or "chop_loop")
+          inst.AnimState:PlayAnimation(inst:HasTag("usingstamina") and "fast_chop_loop" or "chop_loop")
+        end
+      end
+    elseif v.name == "chop_start" then
+      -- onenter
+      local old_onenter = self.states[k].onenter
+      self.states[k].onenter = function(inst)
+        if inst:HasTag("woodcutter") then
+          old_onenter(inst)
+        elseif inst:HasTag("staminauser") then
+          inst.components.locomotor:Stop()
+          inst.AnimState:PlayAnimation(inst:HasTag("usingstamina") and "fast_chop_pre" or "chop_pre")
         end
       end
     end
