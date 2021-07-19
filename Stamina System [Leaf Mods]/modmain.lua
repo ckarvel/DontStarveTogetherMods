@@ -1,12 +1,10 @@
-local StaminaHelper = GLOBAL.require("staminahelper")
+local StaminaUtils = GLOBAL.require("staminautils")
+local TimelineUtils = GLOBAL.require("timelineutils")
 local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 local SPRINTKEY = GetModConfigData("SPRINTKEY")
 
-GLOBAL.require("stategraphs/commonstates")
-
 Assets = {
-  Asset("ANIM", "anim/status_stamina.zip"),
-  Asset("ANIM", "anim/fast_player_actions_axe.zip")
+  Asset("ANIM", "anim/status_stamina.zip")
 }
 
 local function InGame()
@@ -19,7 +17,7 @@ end
 
 GLOBAL.TUNING.WILSON_STAMINA = 100
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
-GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I'm too tired!"
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I don't have enough energy!"
 
 local function AddSystemComponents(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
@@ -40,63 +38,7 @@ end
 -- called on each player spawned
 AddPlayerPostInit(AddSystemComponents)
 
-AddStategraphPostInit("wilson_client", function(self)
-  local TIMEOUT = 2
-  for k, v in pairs(self.states) do
-    if v.name == "chop_start" then
-      -- onenter
-      local old_onenter = self.states[k].onenter
-      self.states[k].onenter = function(inst)
-        if inst:HasTag("woodcutter") then
-          old_onenter(inst)
-        else
-          inst.components.locomotor:Stop()
-          if not inst:HasTag("working") then
-            if inst:HasTag("staminauser") then
-                inst.AnimState:PlayAnimation("fast_chop_pre")
-                inst.AnimState:PushAnimation("fast_chop_lag", false)
-            else
-                inst.AnimState:PlayAnimation("chop_pre")
-                inst.AnimState:PushAnimation("chop_lag", false)
-            end
-          end
-
-          inst:PerformPreviewBufferedAction()
-          inst.sg:SetTimeout(TIMEOUT)
-        end
-      end
-    end
-  end
-end)
-
-AddStategraphPostInit("wilson", function(self)
-  for k, v in pairs(self.states) do
-    if v.name == "chop" then
-      -- onenter
-      local old_onenter = self.states[k].onenter
-      self.states[k].onenter = function(inst)
-        if inst:HasTag("woodcutter") then
-          old_onenter(inst)
-        elseif inst:HasTag("staminauser") then
-          inst.sg.statemem.action = inst:GetBufferedAction()
-          inst.sg.statemem.iswoodcutter = inst:HasTag("usingstamina")
-          inst.AnimState:PlayAnimation(inst:HasTag("usingstamina") and "fast_chop_loop" or "chop_loop")
-        end
-      end
-    elseif v.name == "chop_start" then
-      -- onenter
-      local old_onenter = self.states[k].onenter
-      self.states[k].onenter = function(inst)
-        if inst:HasTag("woodcutter") then
-          old_onenter(inst)
-        elseif inst:HasTag("staminauser") then
-          inst.components.locomotor:Stop()
-          inst.AnimState:PlayAnimation(inst:HasTag("usingstamina") and "fast_chop_pre" or "chop_pre")
-        end
-      end
-    end
-  end
-end)
+AddStategraphPostInit("wilson", TimelineUtils.ModifyWorkingTimelines)
 
 ----------------------------------------------------------------------
 -- modify combat so we're notified when players are in/out of combat
@@ -170,8 +112,8 @@ local function AddStaminaClassified(inst)
   -- WARNING: some of this code needs to be run on the client
   -- if by mistake, you force it to only run on the server, side effects will occur.
   -- in my case, the UI badge values, like hunger, will not update.
-  StaminaHelper.SetupNetvars(inst)
-  inst:DoTaskInTime(0, StaminaHelper.RegisterNetListeners)
+  StaminaUtils.SetupNetvars(inst)
+  inst:DoTaskInTime(0, StaminaUtils.RegisterNetListeners)
 end
 
 -- server updates the client by using stamina netvars on the player_classified
@@ -185,26 +127,26 @@ AddClassPostConstruct("widgets/statusdisplays", function(self)
   -- show/hide badge value
   local old_ShowStatusNumbers = self.ShowStatusNumbers
   self.ShowStatusNumbers = function(self)
-    StaminaHelper.ShowStatusNumbers(self, old_ShowStatusNumbers)
+    StaminaUtils.ShowStatusNumbers(self, old_ShowStatusNumbers)
   end
   local old_HideStatusNumbers = self.HideStatusNumbers
   self.HideStatusNumbers = function(self)
-    StaminaHelper.HideStatusNumbers(self, old_HideStatusNumbers)
+    StaminaUtils.HideStatusNumbers(self, old_HideStatusNumbers)
   end
 
   -- sets value that affects the actual value
   -- and the visual level in the badge
   self.SetStaminaPercent = function(self, pct)
-    StaminaHelper.SetStaminaPercent(self, pct)
+    StaminaUtils.SetStaminaPercent(self, pct)
   end
   self.StaminaDelta = function(self, data)
-    StaminaHelper.StaminaDelta(self, data)
+    StaminaUtils.StaminaDelta(self, data)
   end
 
   -- show/hide badge
   local old_SetGhostMode = self.SetGhostMode
   self.SetGhostMode = function(self, ghostmode)
-    StaminaHelper.SetGhostMode(self, ghostmode, old_SetGhostMode)
+    StaminaUtils.SetGhostMode(self, ghostmode, old_SetGhostMode)
   end
 
   self.lungs = self:AddChild(StaminaBadge(self.owner))

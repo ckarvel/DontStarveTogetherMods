@@ -198,6 +198,11 @@ local function is_moving(inst)
   return false
 end
 ----------------------------------------------------------------------
+local function is_working(inst)
+  if inst.sg:HasStateTag("working") then return true end
+  return false
+end
+----------------------------------------------------------------------
 local function is_incombat(inst)
   if inst.components.aggro then
     return inst.components.aggro:IsInCombat()
@@ -268,14 +273,12 @@ function Stamina:OnUpdate(dt)
         self.old_wants_to_sprint = self.wants_to_sprint
       end
       self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-    else
-      self:ResetPlayerSpeed()
-      if self.inst.sg:HasStateTag("chopping") then
-        if not self.inst:HasTag("usingstamina") then
-          self.inst:AddTag("usingstamina")
-        end
+    elseif is_working(self.inst) then
+      self:ResetPlayerSpeed() -- reset speed just in case
+      self.usingstamina = true
         self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-      end
+    else
+      self:ResetPlayerSpeed() -- reset speed just in case
     end
   -- Not pressing sprint button
   else
