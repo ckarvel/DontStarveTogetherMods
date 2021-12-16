@@ -44,7 +44,7 @@ function StaminaBadge:OnUpdate(dt)
       self:DoTransition()
     end
     -- don't show arrows when its disabled
-    if not self.disabled_mode then
+    if not self.disabled_mode and not self.owner.replica.stamina:IsInvincible() then
       -- is it increasing/decreasing?
       if self.owner.replica.stamina:IsUsingStamina() then
         anim = "arrow_loop_decrease_most"

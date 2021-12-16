@@ -28,15 +28,26 @@ local function AddSystemComponents(inst)
   inst:ListenForEvent("staminaempty", function(inst, data)
       inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
   end)
-  inst:ListenForEvent("staminadisabled", function(inst, data)
+  inst:ListenForEvent("staminawarning", function(inst, data)
     inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
   end)
 
   inst:AddComponent("aggro")
 end
 
+local function ListenGodMode(inst)
+  if not GLOBAL.TheWorld.ismastersim then return end
+  inst:ListenForEvent("invincibletoggle", function(inst, data)
+      if inst.components.stamina then
+        inst.components.stamina:SetInvincible(data.invincible)
+      end
+  end)
+end
+
 -- called on each player spawned
 AddPlayerPostInit(AddSystemComponents)
+-- when invincible, make stamina invincible
+AddPlayerPostInit(ListenGodMode)
 
 AddStategraphPostInit("wilson", TimelineUtils.ModifyWorkingTimelines)
 

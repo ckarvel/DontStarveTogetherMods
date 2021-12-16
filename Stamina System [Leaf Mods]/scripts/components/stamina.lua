@@ -22,6 +22,10 @@ local function ondisabled(self, flag)
   self.inst.replica.stamina:SetDisabled(flag)
 end
 ----------------------------------------------------------------------
+local function oninvincible(self, flag)
+  self.inst.replica.stamina:SetInvincible(flag)
+end
+----------------------------------------------------------------------
 local Stamina = Class(function(self, inst)
   self.inst = inst
   self.maxstamina = 100
@@ -45,6 +49,7 @@ local Stamina = Class(function(self, inst)
   self.gave_empty_warning = false
   self.warning_interval = 10 -- when user tries to sprint but can't
   self.disabled = false -- player aggroed enemies?
+  self.invincible = false
   self.inst:StartUpdatingComponent(self)
 end,
 nil,
@@ -54,6 +59,7 @@ nil,
   wants_to_sprint = onwantstosprint,
   usingstamina = onusingstamina,
   disabled = ondisabled,
+  invincible = oninvincible,
 })
 ----------------------------------------------------------------------
 function Stamina:ForceUpdateHUD(overtime)
@@ -73,14 +79,28 @@ function Stamina:OnLoad(data)
     self.maxstamina = data.maxstamina
   end
 
+  if data.invincible ~= nil then 
+    self.invincible = data.invincible
+  end
+
   if data.currentstamina ~= nil then
-    self:SetVal(data.currentstamina, "file_load")
+    self:SetValue(data.currentstamina, "file_load")
     self:ForceUpdateHUD(true)
   end
 end
 ----------------------------------------------------------------------
 function Stamina:GetPercent()
   return self.currentstamina / self.maxstamina
+end
+----------------------------------------------------------------------
+function Stamina:SetInvincible(val)
+  self.invincible = val
+  self.disabled = false
+  self:SetCurrentStamina(100)
+end
+----------------------------------------------------------------------
+function Stamina:IsInvincible()
+  return self.invincible
 end
 ----------------------------------------------------------------------
 function Stamina:SetCurrentStamina(amount)
@@ -114,7 +134,7 @@ function Stamina:IsFull()
 end
 ----------------------------------------------------------------------
 function Stamina:SetPercent(percent, overtime)
-  self:SetVal(self.maxstamina * percent)
+  self:SetValue(self.maxstamina * percent)
   self:DoDelta(0, overtime)
 end
 ----------------------------------------------------------------------
@@ -166,6 +186,9 @@ end
 -- overtime: True if amount is supposed to be given over time?
 ----------------------------------------------------------------------
 function Stamina:DoDelta(amount, overtime, cause)
+  if self:IsInvincible() then
+    amount = self.maxstamina
+  end
   local old_percent = self:GetPercent()
   self:SetValue(self.currentstamina + amount, cause)
   local new_percent = self:GetPercent()
@@ -242,27 +265,24 @@ function Stamina:OnUpdate(dt)
     return -- exit if dead
   end
 
-  self.disabled = is_disabled(self) -- called every loop to update mode
-  if self.needcooldown or self.disabled then
-    if self.usingstamina or -- if just got targeted while sprinting, warn
-       self.wants_to_sprint and
-       self.old_wants_to_sprint ~= self.wants_to_sprint and
-       not self.gave_empty_warning then
-        self.inst:PushEvent("staminadisabled")
-        self.gave_empty_warning = true
-        self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
-        self.old_wants_to_sprint = self.wants_to_sprint
-    end
+  if not self:IsInvincible() then
+    self.disabled = is_disabled(self) or self.needcooldown -- called every loop to update mode
+    if self.disabled then
+      -- if we didn't warn yet, and user is running or is trying to run, warn
+      if not self.gave_empty_warning and (self.usingstamina or self.wants_to_sprint and self.old_wants_to_sprint ~= self.wants_to_sprint) then
+          self.inst:PushEvent("staminawarning")
+          self.gave_empty_warning = true
+          self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
+          self.old_wants_to_sprint = self.wants_to_sprint
+      end
 
-    self:ResetPlayerSpeed()
-    if self.inst:HasTag("usingstamina") then
-      self.inst:RemoveTag("usingstamina")
-    end
+      self:ResetPlayerSpeed()
 
-    if CanStaminaRegen(self) then
-      self:DoDelta(self.rateup * dt, true) -- increase stamina
+      if CanStaminaRegen(self) then
+        self:DoDelta(self.rateup * dt, true) -- increase stamina
+      end
+      return
     end
-    return
   end
 
   -- Is pressing sprint button
@@ -276,22 +296,19 @@ function Stamina:OnUpdate(dt)
     elseif is_working(self.inst) then
       self:ResetPlayerSpeed() -- reset speed just in case
       self.usingstamina = true
-        self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
+      self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
     else
       self:ResetPlayerSpeed() -- reset speed just in case
     end
   -- Not pressing sprint button
   else
-    if self.inst:HasTag("usingstamina") then
-      self.inst:RemoveTag("usingstamina")
-    end
     if self.old_wants_to_sprint ~= self.wants_to_sprint then
       self:ResetPlayerSpeed()
       self.old_wants_to_sprint = self.wants_to_sprint
     end
-    if CanStaminaRegen(self) then
-      self:DoDelta(self.rateup * dt, true) -- increase stamina
-    end
+  end
+  if not self.usingstamina and CanStaminaRegen(self) then
+    self:DoDelta(self.rateup * dt, true) -- increase stamina
   end
 end
 ----------------------------------------------------------------------

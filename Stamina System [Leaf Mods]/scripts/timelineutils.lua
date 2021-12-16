@@ -1,7 +1,7 @@
 require("stategraph")
 local TimelineUtils = {}
 ----------------------------------------------------------------------
--- Modify timeline by inserting a fast chop action in Key 4
+-- CHOPPING
 -- Warning: SGwilson.lua timeline order is wrong?
 -- This is the actual timeline keys/values
 -- Key     Value
@@ -13,71 +13,51 @@ local TimelineUtils = {}
 --  6       12 * FRAMES = 0.400 -- woodcutter (this is not a typo)
 --  7       14 * FRAMES = 0.467 -- normal
 --  8       16 * FRAMES = 0.533 -- normal
-----------------------------------------------------------------------
-local has_fastchop_timeline = false
-local function DoChopping(inst, state)
-  if state.name ~= "chop" then
-    return
-  end
 
-  local old_onenter = state.onenter
-  state.onenter = function(inst)
-    if not inst:HasTag("woodcutter") and inst:HasTag("staminauser") then
-      -- timeline (set once) --
-      if not has_fastchop_timeline then
-        has_fastchop_timeline = true
-
-        local fast_chop = TimeEvent(5.25 * FRAMES, function(inst) -- slower than woodie
-          if not inst:HasTag("woodcutter") and inst.replica.stamina:IsUsingStamina() then
-            inst.sg:RemoveStateTag("prechop")
-          end
-        end)
-        table.insert(state.timeline, 4, fast_chop)
-      end
-    end
-    old_onenter(inst) -- all players will call this, I just added the above to modify timeline
-  end
-end
-----------------------------------------------------------------------
--- Modify timeline by inserting a fast mine action in Key 2
+-- MINING
 -- This is the original timeline keys/values
 -- Key     Value
 --  1        7 * FRAMES = 0.233 -- normal
 --  2        9 * FRAMES = 0.467 -- normal <- insert fast mining here
 --  3        14 * FRAMES = 0.467 -- normal
-----------------------------------------------------------------------
-local has_fastmine_timeline = false
-local function DoMining(inst, state)
-  if state.name ~= "mine" then
-    return
-  end
 
+-- HAMMERING
+----------------------------------------------------------------------
+local action_timelines = {}
+local function ModifyTimeline(inst, state, data)
   local old_onenter = state.onenter
   state.onenter = function(inst)
     if inst:HasTag("staminauser") then
       -- timeline (set once) --
-      if not has_fastmine_timeline then
-        has_fastmine_timeline = true
+      if action_timelines[state.name] == nil then
+        action_timelines[state.name] = true
 
-        local fast_mine = TimeEvent(5 * FRAMES, function(inst)
+        local fast_action = TimeEvent(data.time * FRAMES, function(inst)
           if inst.replica.stamina:IsUsingStamina() then
-            inst.sg:RemoveStateTag("premine")
+            print("pre"..state.name)
+            inst.sg:RemoveStateTag("pre"..state.name)
           end
         end)
-        table.insert(state.timeline, 2, fast_mine)
+        table.insert(state.timeline, data.key, fast_action)
       end
     end
     old_onenter(inst) -- all players will call this, I just added the above to modify timeline
   end
 end
 ----------------------------------------------------------------------
-----------------------------------------------------------------------
 function TimelineUtils.ModifyWorkingTimelines(inst)
-  for k, data in pairs(inst.states) do
-    if data.name == "chop" then
-      DoChopping(inst, data)
-    elseif data.name == "mine" then
-      DoMining(inst, data)
+  for k, state in pairs(inst.states) do
+    local frame_data = nil
+    if state.name == "chop" then
+      frame_data = { key = 4, time = 5.25 }
+    elseif state.name == "mine" then
+      frame_data = { key = 2, time = 5 }
+    -- elseif state.name == "hammer" then
+    --   frame_data = { key = 2, time = 5 } -- todo
+    end
+
+    if frame_data ~= nil then
+      ModifyTimeline(inst, state, frame_data)
     end
   end
 end
