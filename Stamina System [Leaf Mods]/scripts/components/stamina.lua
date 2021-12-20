@@ -147,7 +147,6 @@ end
 ----------------------------------------------------------------------
 function Stamina:SetSpeedMultiplier(val)
   self.sprintspeedmult = val
-  print("setting sprint speed multiplier to "..tostring(self.sprintspeedmult))
 end
 ----------------------------------------------------------------------
 -- Increase player walkspeed
@@ -206,7 +205,7 @@ function Stamina:DoDelta(amount, overtime, cause)
 end
 ----------------------------------------------------------------------
 function Stamina:GetDebugString()
-  return string.format("%2.2f / %2.2f, disabled: %s, state: %s", self.currentstamina, self.maxstamina, tostring(self.disabled), tostring(self.wants_to_sprint))
+  return string.format("%2.2f / %2.2f, disabled: %s, state: %s, speedmult: %s", self.currentstamina, self.maxstamina, tostring(self.disabled), tostring(self.wants_to_sprint), tostring(self.sprintspeedmult))
 end
 ----------------------------------------------------------------------
 local function CanStaminaRegen(self)
