@@ -2,6 +2,7 @@ local StaminaUtils = GLOBAL.require("staminautils")
 local TimelineUtils = GLOBAL.require("timelineutils")
 local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 local SPRINTKEY = GetModConfigData("SPRINTKEY")
+local SPRINTSPEED = GetModConfigData("SPRINTSPEED")
 
 Assets = {
   Asset("ANIM", "anim/status_stamina.zip")
@@ -25,13 +26,13 @@ local function AddSystemComponents(inst)
   inst:AddTag("staminauser")
   inst:AddComponent("stamina")
   inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
+  inst.components.stamina:SetSpeedMultiplier(SPRINTSPEED)
   inst:ListenForEvent("staminaempty", function(inst, data)
       inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
   end)
   inst:ListenForEvent("staminawarning", function(inst, data)
     inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
   end)
-
   inst:AddComponent("aggro")
 end
 

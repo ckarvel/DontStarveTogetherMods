@@ -145,6 +145,11 @@ function Stamina:SetWantsToSprint(flag)
   end
 end
 ----------------------------------------------------------------------
+function Stamina:SetSpeedMultiplier(val)
+  self.sprintspeedmult = val
+  print("setting sprint speed multiplier to "..tostring(self.sprintspeedmult))
+end
+----------------------------------------------------------------------
 -- Increase player walkspeed
 ----------------------------------------------------------------------
 function Stamina:BoostWalkSpeed()
