@@ -1,7 +1,7 @@
 name = "Stamina System [Leaf Mods]"
 description = "Use stamina to run faster"
 author = "amoryleaf"
-version = "1.1.6"
+version = "1.1.7"
 
 forumthread = ""
 
@@ -38,13 +38,32 @@ local keyslist = {
   add_option("Left Alt", KEY_LALT)
 }
 
+-- slow speeds
+-- HEAVY_SPEED_MULT = .15,
+-- SLINGSHOT_AMMO_MOVESPEED_MULT = 2/3, (0.667)
+-- PIGGYBACK_SPEED_MULT = 0.9,
+
+-- fast speeds
+-- CANE_SPEED_MULT, SADDLE_WAR_SPEEDMULT = 1.25
+-- SADDLE_BASIC_SPEEDMULT = 1.4,
+-- SADDLE_RACE_SPEEDMULT = 1.55,
+-- GHOSTLYELIXIR_SPEED_LOCO_MULT = 1.75,
+-- ROGUEWAVE_SPEED_MULTIPLIER = 3,
+
+local speedlist = {
+  add_option("Walking Cane", 1.25),
+  add_option("Basic Beefalo", 1.4),
+  add_option("Race Beefalo", 1.55),
+  add_option("Vigor Mortis", 1.75),
+  add_option("Ocean Waves", 3)
+}
+
+local function AddConfig(name, label, options, default, hover)
+  return {name = name, label = label, options = options, default = default, hover = hover or ""}
+end
+
 configuration_options =
 {
-  {
-    name = "SPRINTKEY",
-    label = "Sprint Button",
-    options = keyslist,
-    default = KEY_LSHIFT,
-    hover = "Hold down this key to sprint.",
-  }
+  AddConfig("SPRINTKEY", "Sprint Button", keyslist, KEY_LSHIFT, "Hold down this key to sprint."),
+  AddConfig("SPRINTSPEED", "Sprint Speed", speedlist, 1.55, "Walking Cane=1.25x Basic Beefalo=1.4x Race Beefalo=1.55x (Default) Vigor Mortis=1.75x Ocean Waves=3x"),
 }

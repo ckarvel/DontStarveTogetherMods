@@ -7,6 +7,7 @@ local Stamina = Class(function(self, inst)
   self._wantstosprint = net_bool(inst.GUID, "stamina._wantstosprint")
   self._usingstamina = net_bool(inst.GUID, "stamina._usingstamina")
   self._disabled = net_bool(inst.GUID, "stamina._disabled")
+  self._invincible = net_bool(inst.GUID, "stamina._invincible")
   if TheWorld.ismastersim then
     self.classified = inst.player_classified
   elseif self.classified == nil and inst.player_classified ~= nil then
@@ -132,6 +133,18 @@ end
 --------------------------------------------------------------------------
 function Stamina:IsDisabled()
   return self._disabled:value()
+end
+--------------------------------------------------------------------------
+function Stamina:SetInvincible(flag)
+  if not flag then
+    self._invincible:set(false)
+  else
+    self._invincible:set(flag)
+  end
+end
+--------------------------------------------------------------------------
+function Stamina:IsInvincible()
+  return self._invincible:value()
 end
 --------------------------------------------------------------------------
 return Stamina

@@ -1,10 +1,10 @@
-local StaminaHelper = {}
+local StaminaUtils = {}
 
 --------------------------------------------------------------------------
 -- NETWORKING: Netvar setup/register-listeners/updates
 --------------------------------------------------------------------------
 
-StaminaHelper.OnStaminaDirty = function(inst)
+local function OnStaminaDirty(inst)
   if inst._parent ~= nil then
     local oldpercent = inst._oldstaminapercent
     local percent = inst.currentstamina:value() / inst.maxstamina:value()
@@ -35,7 +35,7 @@ local function SetDirty(netvar, val)
   netvar:set(val)
 end
 -----------------------------------
-StaminaHelper.OnStaminaDelta = function(parent, data)
+local function OnStaminaDelta(parent, data)
   if data.newpercent > data.oldpercent then
     --Force dirty, we just want to trigger an event on the client
     SetDirty(parent.player_classified.isstaminapulseup, true)
@@ -44,21 +44,21 @@ StaminaHelper.OnStaminaDelta = function(parent, data)
   end
 end
 -----------------------------------
-StaminaHelper.RegisterNetListeners = function(inst)
+function StaminaUtils.RegisterNetListeners(inst)
   if TheWorld.ismastersim then
     inst._parent = inst.entity:GetParent()
-    inst:ListenForEvent("staminadelta", StaminaHelper.OnStaminaDelta, inst._parent)
+    inst:ListenForEvent("staminadelta", OnStaminaDelta, inst._parent)
   else
     inst.isstaminapulseup:set_local(false)
     inst.isstaminapulsedown:set_local(false)
-    inst:ListenForEvent("staminadirty", StaminaHelper.OnStaminaDirty)
+    inst:ListenForEvent("staminadirty", OnStaminaDirty)
     if inst._parent ~= nil then
       inst._oldstaminapercent = inst.maxstamina:value() > 0 and inst.currentstamina:value() / inst.maxstamina:value() or 0
     end
   end
 end
 -----------------------------------
-StaminaHelper.SetupNetvars = function(inst)
+function StaminaUtils.SetupNetvars(inst)
   --Stamina variables
   inst.currentstamina = net_ushortint(inst.GUID, "stamina.currentstamina", "staminadirty")
   inst.maxstamina = net_ushortint(inst.GUID, "stamina.maxstamina", "staminadirty")
@@ -73,12 +73,12 @@ end
 -- UI BADGE
 --------------------------------------------------------------------------
 
-StaminaHelper.ShowStatusNumbers = function(self, callback)
+function StaminaUtils.ShowStatusNumbers(self, callback)
   callback(self)
   self.lungs.num:Show()
 end
 -----------------------------------
-StaminaHelper.HideStatusNumbers = function(self, callback)
+function StaminaUtils.HideStatusNumbers(self, callback)
   callback(self)
   self.lungs.num:Hide()
 end
@@ -88,7 +88,7 @@ local function OnSetPlayerMode(self)
     if self.onstaminadelta == nil then
       self.onstaminadelta = function(owner, data) self:StaminaDelta(data) end
       self.inst:ListenForEvent("staminadelta", self.onstaminadelta, self.owner)
-      StaminaHelper.SetStaminaPercent(self, self.owner.replica.stamina:GetPercent())
+      StaminaUtils.SetStaminaPercent(self, self.owner.replica.stamina:GetPercent())
     end
   end
 end
@@ -100,7 +100,7 @@ local function OnSetGhostMode(self)
   end
 end
 -----------------------------------
-StaminaHelper.SetGhostMode = function(self, ghostmode, callback)
+function StaminaUtils.SetGhostMode(self, ghostmode, callback)
   callback(self, ghostmode)
   if ghostmode then
     self.lungs:Hide()
@@ -111,12 +111,12 @@ StaminaHelper.SetGhostMode = function(self, ghostmode, callback)
   end
 end
 -----------------------------------
-StaminaHelper.SetStaminaPercent = function(self, pct)
+function StaminaUtils.SetStaminaPercent(self, pct)
   self.lungs:SetPercent(pct, self.owner.replica.stamina:Max())
 end
 -----------------------------------
-StaminaHelper.StaminaDelta = function(self, data)
+function StaminaUtils.StaminaDelta(self, data)
   self:SetStaminaPercent(data.newpercent)
 end
 --------------------------------------------------------------------------
-return StaminaHelper
+return StaminaUtils

@@ -1,6 +1,8 @@
-local StaminaHelper = GLOBAL.require("staminahelper")
+local StaminaUtils = GLOBAL.require("staminautils")
+local TimelineUtils = GLOBAL.require("timelineutils")
 local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 local SPRINTKEY = GetModConfigData("SPRINTKEY")
+local SPRINTSPEED = GetModConfigData("SPRINTSPEED")
 
 Assets = {
   Asset("ANIM", "anim/status_stamina.zip")
@@ -16,25 +18,39 @@ end
 
 GLOBAL.TUNING.WILSON_STAMINA = 100
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
-GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I can't sprint right now!"
+GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I don't have enough energy!"
 
 local function AddSystemComponents(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
 
+  inst:AddTag("staminauser")
   inst:AddComponent("stamina")
   inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
+  inst.components.stamina:SetSpeedMultiplier(SPRINTSPEED)
   inst:ListenForEvent("staminaempty", function(inst, data)
       inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
   end)
-  inst:ListenForEvent("staminadisabled", function(inst, data)
+  inst:ListenForEvent("staminawarning", function(inst, data)
     inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
   end)
-
   inst:AddComponent("aggro")
+end
+
+local function ListenGodMode(inst)
+  if not GLOBAL.TheWorld.ismastersim then return end
+  inst:ListenForEvent("invincibletoggle", function(inst, data)
+      if inst.components.stamina then
+        inst.components.stamina:SetInvincible(data.invincible)
+      end
+  end)
 end
 
 -- called on each player spawned
 AddPlayerPostInit(AddSystemComponents)
+-- when invincible, make stamina invincible
+AddPlayerPostInit(ListenGodMode)
+
+AddStategraphPostInit("wilson", TimelineUtils.ModifyWorkingTimelines)
 
 ----------------------------------------------------------------------
 -- modify combat so we're notified when players are in/out of combat
@@ -108,8 +124,8 @@ local function AddStaminaClassified(inst)
   -- WARNING: some of this code needs to be run on the client
   -- if by mistake, you force it to only run on the server, side effects will occur.
   -- in my case, the UI badge values, like hunger, will not update.
-  StaminaHelper.SetupNetvars(inst)
-  inst:DoTaskInTime(0, StaminaHelper.RegisterNetListeners)
+  StaminaUtils.SetupNetvars(inst)
+  inst:DoTaskInTime(0, StaminaUtils.RegisterNetListeners)
 end
 
 -- server updates the client by using stamina netvars on the player_classified
@@ -123,26 +139,26 @@ AddClassPostConstruct("widgets/statusdisplays", function(self)
   -- show/hide badge value
   local old_ShowStatusNumbers = self.ShowStatusNumbers
   self.ShowStatusNumbers = function(self)
-    StaminaHelper.ShowStatusNumbers(self, old_ShowStatusNumbers)
+    StaminaUtils.ShowStatusNumbers(self, old_ShowStatusNumbers)
   end
   local old_HideStatusNumbers = self.HideStatusNumbers
   self.HideStatusNumbers = function(self)
-    StaminaHelper.HideStatusNumbers(self, old_HideStatusNumbers)
+    StaminaUtils.HideStatusNumbers(self, old_HideStatusNumbers)
   end
 
   -- sets value that affects the actual value
   -- and the visual level in the badge
   self.SetStaminaPercent = function(self, pct)
-    StaminaHelper.SetStaminaPercent(self, pct)
+    StaminaUtils.SetStaminaPercent(self, pct)
   end
   self.StaminaDelta = function(self, data)
-    StaminaHelper.StaminaDelta(self, data)
+    StaminaUtils.StaminaDelta(self, data)
   end
 
   -- show/hide badge
   local old_SetGhostMode = self.SetGhostMode
   self.SetGhostMode = function(self, ghostmode)
-    StaminaHelper.SetGhostMode(self, ghostmode, old_SetGhostMode)
+    StaminaUtils.SetGhostMode(self, ghostmode, old_SetGhostMode)
   end
 
   self.lungs = self:AddChild(StaminaBadge(self.owner))
