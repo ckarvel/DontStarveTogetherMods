@@ -38,24 +38,35 @@ local keyslist = {
   add_option("Left Alt", KEY_LALT)
 }
 
--- slow speeds
--- HEAVY_SPEED_MULT = .15,
--- SLINGSHOT_AMMO_MOVESPEED_MULT = 2/3, (0.667)
--- PIGGYBACK_SPEED_MULT = 0.9,
+-- WILSON_RUN_SPEED = 6 (base)
+-- CANE_SPEED_MULT = 1.25
+-- GHOSTLYELIXIR_SPEED_LOCO_MULT = 1.75
+-- ROGUEWAVE_SPEED_MULTIPLIER = 3
 
--- fast speeds
--- CANE_SPEED_MULT, SADDLE_WAR_SPEEDMULT = 1.25
--- SADDLE_BASIC_SPEEDMULT = 1.4,
--- SADDLE_RACE_SPEEDMULT = 1.55,
--- GHOSTLYELIXIR_SPEED_LOCO_MULT = 1.75,
--- ROGUEWAVE_SPEED_MULTIPLIER = 3,
+-- BEEFALO_RUN_SPEED = (base)
+-- {
+--     DEFAULT = 7,
+--     RIDER = 8.0,
+--     ORNERY = 7.0,
+--     PUDGY = 6.5,
+-- },
+-- SADDLE_WAR_SPEEDMULT = 1.25
+-- SADDLE_BASIC_SPEEDMULT = 1.4
+-- SADDLE_RACE_SPEEDMULT = 1.55
+-- fastest beefalo: Rider * SADDLE_RACE_SPEEDMULT = 12.4
+
+-- 6 * 1.33 = ~8 (Rider runspeed)
+-- 6 * 1.55 = 9.3 (Elite Pig runspeed)
+-- 6 * 1.75 = 10.5 (Wilson drinks Vigor Mortis)
+-- 6 * 2.06 = ~12.4 (Rider with Race Saddle)
+-- 6 * 3 = 18 (Minotaur runspeed)
 
 local speedlist = {
-  add_option("Walking Cane", 1.25),
-  add_option("Basic Beefalo", 1.4),
-  add_option("Race Beefalo", 1.55),
+  add_option("Rider Beefalo", 1.33),
+  add_option("Elite Pig", 1.55),
   add_option("Vigor Mortis", 1.75),
-  add_option("Ocean Waves", 3)
+  add_option("Racer Beefalo", 2.06),
+  add_option("Minotaur", 3)
 }
 
 local function AddConfig(name, label, options, default, hover)
@@ -65,5 +76,5 @@ end
 configuration_options =
 {
   AddConfig("SPRINTKEY", "Sprint Button", keyslist, KEY_LSHIFT, "Hold down this key to sprint."),
-  AddConfig("SPRINTSPEED", "Sprint Speed", speedlist, 1.55, "Walking Cane=1.25x Basic Beefalo=1.4x Race Beefalo=1.55x (Default) Vigor Mortis=1.75x Ocean Waves=3x"),
+  AddConfig("SPRINTSPEED", "Sprint Speed", speedlist, 1.55, "Rider Beefalo=1.33x Elite Pig=1.55x (default) Vigor Mortis=1.75x Racer Beefalo=2x Minotaur=3x"),
 }
