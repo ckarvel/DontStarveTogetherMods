@@ -2,8 +2,9 @@ require("stategraph")
 local TimelineUtils = {}
 ----------------------------------------------------------------------
 -- CHOPPING
--- Warning: SGwilson.lua timeline order is wrong?
--- This is the actual timeline keys/values
+-- Warning: Order of TimeEvents in SGwilson.lua seems to be wrong?
+-- By debugging/printing statye4m
+-- This is the actual timeline keys/values that is stored in this variable = SGwilson.State.timeline
 -- Key     Value
 --  1        2 * FRAMES = 0.067 -- woodcutter
 --  2        2 * FRAMES = 0.067 -- normal
@@ -34,7 +35,6 @@ local function ModifyTimeline(inst, state, data)
 
         local fast_action = TimeEvent(data.time * FRAMES, function(inst)
           if inst.replica.stamina:IsUsingStamina() then
-            print("pre"..state.name)
             inst.sg:RemoveStateTag("pre"..state.name)
           end
         end)
