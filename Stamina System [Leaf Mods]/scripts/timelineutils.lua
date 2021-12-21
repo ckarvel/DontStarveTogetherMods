@@ -3,7 +3,7 @@ local TimelineUtils = {}
 ----------------------------------------------------------------------
 -- CHOPPING
 -- Warning: Order of TimeEvents in SGwilson.lua seems to be wrong?
--- By debugging/printing statye4m
+-- I found the following values by printing to the log
 -- This is the actual timeline keys/values that is stored in this variable = SGwilson.State.timeline
 -- Key     Value
 --  1        2 * FRAMES = 0.067 -- woodcutter
