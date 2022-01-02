@@ -4,28 +4,35 @@ local Aggro = Class(function(self, inst)
 end)
 --------------------------------------------------------------------------
 local untargetcallback = function(inst)
-  local target = inst and inst.components.combat.target or nil
+  local target = inst and inst.components.combat and inst.components.combat.target or nil
   if target and target.components.aggro then
     target.components.aggro:RemoveEnemy(inst)
   end
+  -- if inst.entity ~= nil then
+  --   print(inst.name..":"..tostring(inst.entity:GetGUID()).." death/onremove called")
+  -- end
 end
 --------------------------------------------------------------------------
 local onsleepcallback =  function(inst)
-  local target = inst and inst.components.combat.target or nil
+  local target = inst and inst.components.combat and inst.components.combat.target or nil
   if target and target.components.aggro then
     target.components.aggro:AddAsleepEnemy(inst)
   end
+  -- if inst.entity ~= nil then
+  --   print(inst.name..":"..tostring(inst.entity:GetGUID()).." entitysleep/enterlimbo called")
+  -- end
 end
 --------------------------------------------------------------------------
 local onwakecallback =  function(inst)
-  if inst:HasTag("INLIMBO") then -- for some reason, bees "wake up" when caught, so check if in limbo
-    -- print("not actually awake..")
-    return
-  end
-  local target = inst and inst.components.combat.target or nil
+   -- for some reason, bees "wake up" when caught, so check if in limbo
+  if inst:HasTag("INLIMBO") then return end -- not actually awake...
+  local target = inst and inst.components.combat and inst.components.combat.target or nil
   if target and target.components.aggro then
     target.components.aggro:RemoveAsleepEnemy(inst)
   end
+  -- if inst.entity ~= nil then
+    --   print(inst.name..":"..tostring(inst.entity:GetGUID()).." entitywake/exitlimbo called")
+    -- end
 end
 --------------------------------------------------------------------------
 function Aggro:GetEnemy(guid)
@@ -60,6 +67,45 @@ function Aggro:AddEnemy(enemy)
   -- ex. catching/dropping bees
   self.inst:ListenForEvent("enterlimbo", onsleepcallback, enemy)
   self.inst:ListenForEvent("exitlimbo", onwakecallback, enemy)
+end
+--------------------------------------------------------------------------
+function Aggro:GetEnemyDebugString(enemy)
+  local msg = "nil"
+  if enemy == nil then return msg end
+  local guid = enemy.entity and enemy.entity:GetGUID() or nil
+  local combat = enemy.components.combat and enemy.components.combat:GetDebugString() or nil
+  local sg = enemy.sg and enemy.sg:__tostring() or nil
+  local isactive = guid and self.enemies.asleep[guid] == nil
+  msg = ""
+  msg = msg.."name="..enemy.name.."\n"
+  msg = msg.."guid="..tostring(guid).."\n"
+  msg = msg.."combat="..tostring(combat).."\n"
+  msg = msg.."stategraph="..tostring(sg).."\n"
+  if isactive == true then
+    msg = msg.."aggro=active\n"
+  else
+    msg = msg.."aggro=inactive\n"
+  end
+  return msg
+end
+--------------------------------------------------------------------------
+function Aggro:GetDebugString()
+  local msg = "\n--- Enemy Info ---\n"
+  for k,v in pairs(self.enemies.total) do
+    msg = msg..self:GetEnemyDebugString(v)
+    if v.components.teamleader ~= nil then
+      msg = msg.."-- teammembers:\n"
+      for tk,tv in pairs(v.components.teamleader.team) do
+        msg = msg..self:GetEnemyDebugString(tv)
+        if tv.components.teamattacker ~= nil then
+          msg = msg.."teamattacker="..tv.components.teamattacker:GetDebugString().."\n"
+        end
+        msg = msg.."===\n"
+      end
+    end
+    msg = msg.."-----------"
+  end
+  return msg
 end
 --------------------------------------------------------------------------
 function Aggro:AddAsleepEnemy(enemy)
