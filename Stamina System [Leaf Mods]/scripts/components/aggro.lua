@@ -43,8 +43,8 @@ function Aggro:IsInCombat()
   -- total # - sleeping # = active #
   for k,v in pairs(self.enemies.total) do
     if not v.entity:IsValid() then -- happens with bats (dst bug?)
-      -- print(tostring(k).." enemy is gone... removing")
-      self:RemoveEnemy(self.enemies.total[k])
+      self.enemies.total[k] = nil
+      self.enemies.asleep[k] = nil
     end
   end
   return GetTableSize(self.enemies.total) - GetTableSize(self.enemies.asleep) > 0
@@ -63,6 +63,10 @@ function Aggro:AddEnemy(enemy)
   -- self.inst:ListenForEvent("detachchild", onsleepcallback, enemy) -- when bees are caught
   self.inst:ListenForEvent("entitysleep", onsleepcallback, enemy) -- ex. far leif
   self.inst:ListenForEvent("entitywake", onwakecallback, enemy) -- ex. close leif
+
+  -- ex. bats (this doesn't really work because wakeup is called even when asleep... i don't get it)
+  self.inst:ListenForEvent("gotosleep", onsleepcallback, enemy)
+  self.inst:ListenForEvent("onwakeup", onwakecallback, enemy)
 
   -- ex. catching/dropping bees
   self.inst:ListenForEvent("enterlimbo", onsleepcallback, enemy)
@@ -103,7 +107,7 @@ function Aggro:GetDebugString()
         msg = msg.."===\n"
       end
     end
-    msg = msg.."-----------"
+    msg = msg.."-----------\n"
   end
   return msg
 end
