@@ -34,6 +34,12 @@ local function AddSystemComponents(inst)
     inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_STAMINA_WARNING"))
   end)
   inst:AddComponent("aggro")
+  -- hack: when teleporting, reset enemy list to remove aggro
+  -- the only way to fix issues with bats/teleporting
+  local clearfn = function() inst.components.aggro:ClearAllEnemies() end
+  inst:ListenForEvent("wormholetravel", clearfn)
+  inst:ListenForEvent("doneteleporting", clearfn)
+  inst:ListenForEvent("teleported", clearfn)
 end
 
 local function ListenGodMode(inst)

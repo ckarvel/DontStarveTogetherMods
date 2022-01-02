@@ -45,6 +45,8 @@ function Aggro:IsInCombat()
     if not v.entity:IsValid() then -- happens with bats (dst bug?)
       self.enemies.total[k] = nil
       self.enemies.asleep[k] = nil
+    elseif v.sg and v.sg:HasStateTag("sleeping") then
+      self.enemies.asleep[k] = v
     end
   end
   return GetTableSize(self.enemies.total) - GetTableSize(self.enemies.asleep) > 0
@@ -141,6 +143,12 @@ function Aggro:RemoveEnemy(enemy)
 
   self.enemies.total[guid] = nil -- lua's way to remove elements
   self.enemies.asleep[guid] = nil
+end
+--------------------------------------------------------------------------
+function Aggro:ClearAllEnemies()
+  for k,v in pairs(self.enemies.total) do
+    self:RemoveEnemy(v)
+  end
 end
 --------------------------------------------------------------------------
 return Aggro
