@@ -40,6 +40,7 @@ c_speedup()
 c_spawn("bat")
 c_spawn("leif")
 print(ThePlayer.components.aggro:GetDebugString())
+print(TheCamera:GetDistance())
 
 ================= (W/Caves) TheWorld ================
 inlimbo | Pathfinder | worldstatewatching |
@@ -125,20 +126,20 @@ end)
 -- local msg2 = tostring(enemy).." in limbo: "..tostring(enemy:IsInLimbo())
 -- TheNet:SystemMessage(msg, false)
 -- TheNet:SystemMessage(msg2, false)
-AddSimPostInit(function()
-  GLOBAL.TheInput:AddKeyHandler(
-  function(key, down)
-    if not down then return end -- Only trigger on key press
-    if key == GLOBAL.KEY_Z then
-      local x, y, z = GLOBAL.TheSim:ProjectScreenPos(GLOBAL.TheSim:GetPosition())
-      GLOBAL.TheNet:SendRemoteExecute("c_maintainhealth()")
-      GLOBAL.TheNet:SendRemoteExecute("c_spawn(\"bat\")", x, z)
-      GLOBAL.TheNet:SendRemoteExecute("print(ThePlayer.components.aggro:GetDebugString())")
-    elseif key == GLOBAL.KEY_X then
-      GLOBAL.TheNet:SendRemoteExecute("print(ThePlayer.components.aggro:GetDebugString())")
-    end
-  end)
-end)
+-- AddSimPostInit(function()
+--   GLOBAL.TheInput:AddKeyHandler(
+--   function(key, down)
+--     if not down then return end -- Only trigger on key press
+--     if key == GLOBAL.KEY_Z then
+--       local x, y, z = GLOBAL.TheSim:ProjectScreenPos(GLOBAL.TheSim:GetPosition())
+--       GLOBAL.TheNet:SendRemoteExecute("c_maintainhealth()")
+--       GLOBAL.TheNet:SendRemoteExecute("c_spawn(\"bat\")", x, z)
+--       GLOBAL.TheNet:SendRemoteExecute("print(ThePlayer.components.aggro:GetDebugString())")
+--     elseif key == GLOBAL.KEY_X then
+--       GLOBAL.TheNet:SendRemoteExecute("print(ThePlayer.components.aggro:GetDebugString())")
+--     end
+--   end)
+-- end)
 ----------------------------------------------------------------------
 -- Enable ctrl-r for resetting world
 -- Daytime only
