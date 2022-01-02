@@ -138,6 +138,9 @@ function Aggro:RemoveEnemy(enemy)
   self.inst:RemoveEventCallback("entitysleep", onsleepcallback, enemy)
   self.inst:RemoveEventCallback("entitywake", onwakecallback, enemy)
 
+  self.inst:RemoveEventCallback("gotosleep", onsleepcallback, enemy)
+  self.inst:RemoveEventCallback("onwakeup", onwakecallback, enemy)
+
   self.inst:RemoveEventCallback("enterlimbo", onsleepcallback, enemy)
   self.inst:RemoveEventCallback("exitlimbo", onwakecallback, enemy)
 
