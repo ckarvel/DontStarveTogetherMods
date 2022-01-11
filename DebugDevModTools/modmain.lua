@@ -42,6 +42,11 @@ c_spawn("leif")
 print(ThePlayer.components.aggro:GetDebugString())
 print(TheCamera:GetDistance())
 
+get abigail from wendy:
+  ThePlayer.components.ghostlybond.ghost
+print(ThePlayer.components.ghostlybond.ghost.components.aura.radius)
+ThePlayer.components.ghostlybond.ghost.components.aura.radius = 8
+
 ================= (W/Caves) TheWorld ================
 inlimbo | Pathfinder | worldstatewatching |
 worldprefab | ismastershard | wallupdatecomponents |

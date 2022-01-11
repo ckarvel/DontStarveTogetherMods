@@ -11,6 +11,29 @@ local TICK_RATE = 1/3 -- rate in which ModifyMapExplorer() is called (every 33 m
 local last_camera_distance = 0
 local last_pos_revealed = GLOBAL.Vector3(math.inf,0,math.inf)
 ----------------------------------------------------------------------
+-- Check if Global Positions is loaded
+----------------------------------------------------------------------
+local GLOBAL_POSITIONS = GLOBAL.KnownModIndex:IsModEnabled("workshop-378160973")
+for k,v in pairs(GLOBAL.KnownModIndex:GetModsToLoad()) do
+	GLOBAL_POSITIONS = GLOBAL_POSITIONS or v == "workshop-378160973"
+end
+
+local function RevealAreaToAllPlayers(inst, x, z)
+  if not GLOBAL_POSITIONS then return end
+
+  if GLOBAL.TheNet:IsDedicated() and GLOBAL.TheWorld.worldmapexplorer ~= nil then
+    GLOBAL.TheWorld.worldmapexplorer.MapExplorer:RevealArea(x, 0, z)
+  end
+
+  if #GLOBAL.AllPlayers > 0 then
+    for i, player in ipairs(GLOBAL.AllPlayers) do
+      if player.player_classified ~= nil then
+        player.player_classified.MapExplorer:RevealArea(x, 0, z)
+      end
+    end
+  end
+end
+----------------------------------------------------------------------
 -- one-time request client to server
 ----------------------------------------------------------------------
 local function RevealArea(inst, radius, step)
@@ -18,7 +41,11 @@ local function RevealArea(inst, radius, step)
   for theta = 0, GLOBAL.PI2, step do
     next_x = pos.x + radius * math.cos(theta)
     next_z = pos.z + radius * math.sin(theta)
-    inst.player_classified.MapExplorer:RevealArea(next_x, 0 ,next_z)
+    if GLOBAL_POSITIONS then
+      RevealAreaToAllPlayers(inst, next_x, next_z)
+    else
+      inst.player_classified.MapExplorer:RevealArea(next_x, 0 ,next_z)
+    end
   end
 end
 AddModRPCHandler(modname, "RevealArea", RevealArea)
