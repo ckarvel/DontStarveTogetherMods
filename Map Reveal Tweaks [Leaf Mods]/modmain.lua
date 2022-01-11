@@ -19,8 +19,6 @@ for k,v in pairs(GLOBAL.KnownModIndex:GetModsToLoad()) do
 end
 
 local function RevealAreaToAllPlayers(inst, x, z)
-  if not GLOBAL_POSITIONS then return end
-
   if GLOBAL.TheNet:IsDedicated() and GLOBAL.TheWorld.worldmapexplorer ~= nil then
     GLOBAL.TheWorld.worldmapexplorer.MapExplorer:RevealArea(x, 0, z)
   end
@@ -41,7 +39,7 @@ local function RevealArea(inst, radius, step)
   for theta = 0, GLOBAL.PI2, step do
     next_x = pos.x + radius * math.cos(theta)
     next_z = pos.z + radius * math.sin(theta)
-    if GLOBAL_POSITIONS then
+    if GLOBAL_POSITIONS and GLOBAL._GLOBALPOSITIONS_SHAREMINIMAPPROGRESS == true then
       RevealAreaToAllPlayers(inst, next_x, next_z)
     else
       inst.player_classified.MapExplorer:RevealArea(next_x, 0 ,next_z)
