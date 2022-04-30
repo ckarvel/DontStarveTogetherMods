@@ -37,14 +37,19 @@ local Stamina = Class(function(self, inst)
   -- I want:
     -- 1. empty after 12s
       -- 100 / 12 = 8.33
-    -- 2. full after 45s
+    -- 2. full after 60/45/30/15s
+      -- 100 / 60 = 1.67
       -- 100 / 45 = 2.22
+      -- 100 / 30 = 3.33
+      -- 100 / 15 = 6.67
   -- actual values going up/down every second
   self.ratedown = 8.33
   self.rateup = 2.22
   self.needcooldown = false
   self.cooldowntask = nil
-  self.time = nil
+  -- HACK: clear enemy list every 60 seconds
+  self.disabled_timer = 0
+  self.max_combat_time = 60
   self.sprintspeedmult = 1.55
   self.gave_empty_warning = false
   self.warning_interval = 10 -- when user tries to sprint but can't
@@ -149,6 +154,10 @@ function Stamina:SetSpeedMultiplier(val)
   self.sprintspeedmult = val
 end
 ----------------------------------------------------------------------
+function Stamina:SetSpeedRateUp(val)
+  self.rateup = val
+end
+----------------------------------------------------------------------
 -- Increase player walkspeed
 ----------------------------------------------------------------------
 function Stamina:BoostWalkSpeed()
@@ -249,10 +258,25 @@ local function is_weremode(inst)
   return false
 end
 ----------------------------------------------------------------------
-local function is_disabled(self)
+local function is_disabled(self, dt)
   self.disabled = false
   if is_incombat(self.inst) or is_mounted(self.inst) or is_weremode(self.inst) then
     self.disabled = true
+  end
+  if self.disabled then
+    if self.disabled_timer > self.max_combat_time then
+      -- HACK: clear enemy list after 60 seconds... some enemies, maybe not even all the time,
+      -- just don't obey the combat rules for some reason :(
+      if self.inst.components.aggro then
+        self.inst.components.aggro:ClearAllEnemies()
+        self.disabled = false
+        self.disabled_timer = 0
+      end
+    end
+    self.disabled_timer = self.disabled_timer + dt
+  else
+    -- not disabled so reset timer
+    self.disabled_timer = 0
   end
   return self.disabled
 end
@@ -270,7 +294,7 @@ function Stamina:OnUpdate(dt)
   end
 
   if not self:IsInvincible() then
-    self.disabled = is_disabled(self) or self.needcooldown -- called every loop to update mode
+    self.disabled = is_disabled(self, dt) or self.needcooldown -- called every loop to update mode
     if self.disabled then
       -- if we didn't warn yet, and user is running or is trying to run, warn
       if not self.gave_empty_warning and (self.usingstamina or self.wants_to_sprint and self.old_wants_to_sprint ~= self.wants_to_sprint) then

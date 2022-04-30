@@ -1,7 +1,7 @@
 name = "Stamina System [Leaf Mods]"
 description = "Use stamina to run faster"
 author = "amoryleaf"
-version = "1.1.8"
+version = "1.1.9"
 
 forumthread = ""
 
@@ -69,6 +69,13 @@ local speedlist = {
   add_option("Minotaur", 3)
 }
 
+local rechargelist = {
+  add_option("Slow", 1.67),
+  add_option("Default", 2.22),
+  add_option("Fast", 3.33),
+  add_option("Faster", 6.67)
+}
+
 local function AddConfig(name, label, options, default, hover)
   return {name = name, label = label, options = options, default = default, hover = hover or ""}
 end
@@ -77,4 +84,5 @@ configuration_options =
 {
   AddConfig("SPRINTKEY", "Sprint Button", keyslist, KEY_LSHIFT, "Hold down this key to sprint."),
   AddConfig("SPRINTSPEED", "Sprint Speed", speedlist, 1.55, "Rider Beefalo=1.33x Elite Pig=1.55x (default) Vigor Mortis=1.75x Racer Beefalo=2x Minotaur=3x"),
+  AddConfig("SPRINTRATEUP", "Recharge Speed", rechargelist, 2.22, "Total seconds from empty to full. Slow=60s Default=45s Fast=30s Faster=15s"),
 }
