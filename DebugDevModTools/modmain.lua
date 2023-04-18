@@ -117,13 +117,6 @@ playercontroller | talker | inkable
 attuner | playervision
 ================= Player replica ================
 --]]
-
-GLOBAL.CHEATS_ENABLED = true
-GLOBAL.require("debugkeys")
-AddSimPostInit(function()
-  -- only day
-  GLOBAL.TheWorld:PushEvent("ms_setseasonsegmodifier", {day = 3, dusk = 0, night = 0})
-end)
 ----------------------------------------------------------------------
 -- Print from server to chat log without caves
 ----------------------------------------------------------------------
@@ -148,48 +141,52 @@ end)
 ----------------------------------------------------------------------
 -- Enable ctrl-r for resetting world
 -- Daytime only
+-- update: no need to do this unless overriding debugkeys
 ----------------------------------------------------------------------
-AddSimPostInit(function()
-  GLOBAL.TheInput:AddKeyHandler(
-  function(key, down)
-    if not down then return end -- Only trigger on key press
-    -- Require CTRL for any debug keybinds
-    if GLOBAL.TheInput:IsKeyDown(GLOBAL.KEY_CTRL) then
-      -- Load latest save and run latest scripts
-      -- if GLOBAL.TheWorld.ismastersim then
-      -- this prints successfully when playing without caves
-      -- with caves for some reason this doesnt print
-      --   print("iamserver")
-      -- end
-      -- if GLOBAL.TheWorld.components.hounded ~= nil then
-      --   GLOBAL.TheWorld.components.hounded:ForceNextWave()
-      --   print("timetoattack "..tostring(GLOBAL.TheWorld.components.hounded:GetTimeToAttack()))
-      -- endif key == GLOBAL.KEY_R then
-      if key == GLOBAL.KEY_R then
-        if GLOBAL.TheWorld.ismastersim then
-          GLOBAL.c_reset()
-        else
-          GLOBAL.TheNet:SendRemoteExecute("c_reset()")
-        end
-      elseif key == GLOBAL.KEY_C then
-        if GLOBAL.TheWorld.ismastersim then -- not sure in which case this would hit... running public game, im not server??
-          GLOBAL.c_supergodmode(GLOBAL.ThePlayer) 
-          print("setting godmode")
-        else
-          GLOBAL.TheNet:SendRemoteExecute("c_supergodmode(ThePlayer)")
-        end
-      end
-    elseif GLOBAL.TheInput:IsKeyDown(GLOBAL.KEY_SHIFT) then
-      if key == GLOBAL.KEY_R then
-        if GLOBAL.TheWorld.ismastersim then
-          GLOBAL.c_regenerateworld()
-        else
-          GLOBAL.TheNet:SendRemoteExecute("c_regenerateworld()")
-        end
-      end
-    end
-  end)
-end)
+-- AddSimPostInit(function()
+--   print("#### AddSimPostInit ####")
+--   GLOBAL.TheInput:AddKeyHandler(
+--   function(key, down)
+--     if not down then return end -- Only trigger on key press
+--     -- Require CTRL for any debug keybinds
+--     if GLOBAL.TheInput:IsKeyDown(GLOBAL.KEY_CTRL) then
+--       -- Load latest save and run latest scripts
+--       -- if GLOBAL.TheWorld.ismastersim then
+--       -- this prints successfully when playing without caves
+--       -- with caves for some reason this doesnt print
+--       --   print("iamserver")
+--       -- end
+--       -- if GLOBAL.TheWorld.components.hounded ~= nil then
+--       --   GLOBAL.TheWorld.components.hounded:ForceNextWave()
+--       --   print("timetoattack "..tostring(GLOBAL.TheWorld.components.hounded:GetTimeToAttack()))
+--       -- endif key == GLOBAL.KEY_R then
+--       if key == GLOBAL.KEY_R then
+--         if GLOBAL.TheWorld.ismastersim then
+--           GLOBAL.c_reset()
+--           print("#### CTRL-R ####")
+--         else
+--           print("#### CTRL-R ####")
+--           GLOBAL.TheNet:SendRemoteExecute("c_reset()")
+--         end
+--       elseif key == GLOBAL.KEY_C then
+--         if GLOBAL.TheWorld.ismastersim then -- not sure in which case this would hit... running public game, im not server??
+--           GLOBAL.c_supergodmode(GLOBAL.ThePlayer) 
+--           print("setting godmode")
+--         else
+--           GLOBAL.TheNet:SendRemoteExecute("c_supergodmode(ThePlayer)")
+--         end5
+--       end
+--     elseif GLOBAL.TheInput:IsKeyDown(GLOBAL.KEY_SHIFT) then
+--       if key == GLOBAL.KEY_R then
+--         if GLOBAL.TheWorld.ismastersim then
+--           GLOBAL.c_regenerateworld()
+--         else
+--           GLOBAL.TheNet:SendRemoteExecute("c_regenerateworld()")
+--         end
+--       end
+--     end
+--   end)
+-- end)
 ----------------------------------------------------------------------
 -- AddPlayerPostInit(fn)
 ---- Lets you apply changes to all characters in the game at once.
@@ -353,3 +350,66 @@ end)
 --   end
 -- end
 -- AddComponentPostInit("teamleader", NotifyThreatState)
+
+-----------------------------------------------------------------------
+-- UPDATED DEBUG SECTION
+-----------------------------------------------------------------------
+
+-- The following code block is all that's needed to get the debug keys to work
+GLOBAL.CHEATS_ENABLED = true
+GLOBAL.require("debugkeys")
+
+-- This removes nighttime
+AddSimPostInit(function()
+  GLOBAL.TheWorld:PushEvent("ms_setseasonsegmodifier", {day = 3, dusk = 0, night = 0})
+end)
+
+------------------------- DebugKeys that WORK -------------------------
+-- [[ Home ]] pause / step game (ctrl = resume)
+-- [[ A + ctrl ]] unlock all recipes
+-- [[ G ]] godmode (shift = godmode & fills meters)
+-- [[ L ]] in-game: prints position and surrounding tile names; non-game: debug loading screen (must force quit)
+-- [[ M + shift ]] toggle continous fog of war
+-- [[ O + shift ]] print rooms with chester in client log
+-- [[ R + ctrl ]] reset/reload scripts?
+-- [[ S + ctrl ]] save
+-- [[ T ]] teleport to location under cursor and log to console (alt = no logs)
+-- [[ X + ctrl ]] shows debug info on entity under cursor
+-- [[ F1 ]] same as [[ X + ctrl ]]
+-- [[ F2 ]] show debug info for world/forest_network
+-- [[ F3 ]] advance season
+-- [[ F7 + ctrl + shift ]] teleport to each world topology node
+-- [[ F9 ]] skip time (daytime * 0.25)
+-- [[ F10 ]] next day phase
+-- [[ 1 + ctrl ]] craft rope (teleportato_ring??)
+-- [[ LeftBracket ]] set time scale (ctrl = 1 | shift = 0)
+-- [[ RightBracket ]] set time scale (ctrl = 1 | shift = 4)
+-- [[ Keypad+ ]] increase health (ctrl = sanity[5] | shift = hunger | alt = sanity[25]
+-- [[ Keypad- ]] decrease health (ctrl = sanity[-5] | shift = hunger | alt = sanity[0] )
+-- [[ Keypad/ ]] toggle/print DebugTextureVisible flag (doesn't seem to do anything)
+
+------------------------- DebugKeys that DON'T WORK (AFAIK) -------------------------
+-- ALL WINDOW_KEY_BINDINGS
+-- [[ B ]] boat functions
+-- [[ D + shift ]] get world position
+-- [[ G + ctrl ]] grow/perish/domesticate (alt = armor)
+-- [[ M ]] fog of war functions (alt = disable fog | ctrl = toggle fog)
+-- [[ N ]] go to next <nothing> override?
+-- [[ W + ctrl ]] toggleIMGUIm
+-- [[ F1 + ctrl ]] toggle perf graph (alt = select world)
+-- [[ F4 ]] spawn base
+-- [[ F5 ]] set season to fixed lengths (shift = spawn lightning strike)
+-- [[ F6 ]] ??
+-- [[ F8 ]] spawn flowers in surrounding circle
+-- [[ F10 + shift ]] next nightmare phase
+-- [[ F11 ]] pick carrots? (haven't tried with carrots)
+-- [[ F12 ]] ??
+-- [[ PageUp/PageDown ]] set moisture
+-- [[ =/- ]] update debug texture if DebugTextureVisible is on
+
+------------------------- DebugKeys that CRASH -------------------------
+-- [[ H ]] toggle history recording
+-- [[ I ]] debug local gift
+-- [[ F5 + ctrl ]] spawn shadowmeteor
+-- [[ F7 ]] information about world topologies
+-- [[ Keypad* ]] give "devtool" ("Development Tool" mod may fix this)
