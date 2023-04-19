@@ -1,6 +1,6 @@
 local Aggro = Class(function(self, inst)
   self.inst = inst
-  self.enemies = { total = {}, asleep = {} }
+  self.enemies = { total = {}, asleep = {}, far_away = {} }
 end)
 --------------------------------------------------------------------------
 local untargetcallback = function(inst)
@@ -39,17 +39,38 @@ function Aggro:GetEnemy(guid)
   return self.enemies.total[guid]
 end
 --------------------------------------------------------------------------
+-- Assumes enemy is valid
+function Aggro:EnemyInRange(enemy, range)
+  local player_pos = self.inst:GetPosition()
+  local dist_from_player = player_pos:Dist(enemy:GetPosition())
+  -- print("Distance = "..dist_from_player)
+  if dist_from_player <= range then return true end
+  return false
+end
+--------------------------------------------------------------------------
 function Aggro:IsInCombat()
   -- total # - sleeping # = active #
   for k,v in pairs(self.enemies.total) do
     if not v.entity:IsValid() then -- happens with bats (dst bug?)
       self.enemies.total[k] = nil
       self.enemies.asleep[k] = nil
+      self.enemies.far_away[k] = nil
     elseif v.sg and v.sg:HasStateTag("sleeping") then
       self.enemies.asleep[k] = v
+    else
+      -- activate this enemy since he's close (disable stamina)
+      if self:EnemyInRange(v, 10) then -- todo: configurable range
+        self.enemies.far_away[k] = nil
+        -- print("Enemy "..v.name.." is within 5 meters! Activating again!")
+      -- deactive this enemy since he's far away (enable stamina)
+      else
+        self.enemies.far_away[k] = v
+        -- print("Enemy "..v.name.." is further than 5 meters! Set to faraway...")
+      end
     end
   end
-  return GetTableSize(self.enemies.total) - GetTableSize(self.enemies.asleep) > 0
+  local inactive_enemies = GetTableSize(self.enemies.asleep) + GetTableSize(self.enemies.far_away)
+  return GetTableSize(self.enemies.total) - inactive_enemies > 0
 end
 --------------------------------------------------------------------------
 function Aggro:AddEnemy(enemy)
@@ -81,7 +102,7 @@ function Aggro:GetEnemyDebugString(enemy)
   local guid = enemy.entity and enemy.entity:GetGUID() or nil
   local combat = enemy.components.combat and enemy.components.combat:GetDebugString() or nil
   local sg = enemy.sg and enemy.sg:__tostring() or nil
-  local isactive = guid and self.enemies.asleep[guid] == nil
+  local isactive = guid and (self.enemies.asleep[guid] == nil or self.enemies.far_away[guid] == nil)
   msg = ""
   msg = msg.."name="..enemy.name.."\n"
   msg = msg.."guid="..tostring(guid).."\n"
@@ -126,6 +147,18 @@ function Aggro:RemoveAsleepEnemy(enemy)
   self.enemies.asleep[guid] = nil
 end
 --------------------------------------------------------------------------
+function Aggro:AddFarAwayEnemy(enemy)
+  if not enemy then return end
+  local guid = enemy.entity:GetGUID()
+  self.enemies.far_away[guid] = enemy
+end
+--------------------------------------------------------------------------
+function Aggro:RemoveFarAwayEnemy(enemy)
+  if not enemy then return end
+  local guid = enemy.entity:GetGUID()
+  self.enemies.far_away[guid] = nil
+end
+--------------------------------------------------------------------------
 function Aggro:RemoveEnemy(enemy)
   if not enemy then return end
   local guid = enemy.entity:GetGUID()
@@ -146,6 +179,7 @@ function Aggro:RemoveEnemy(enemy)
 
   self.enemies.total[guid] = nil -- lua's way to remove elements
   self.enemies.asleep[guid] = nil
+  self.enemies.far_away[guid] = nil
 end
 --------------------------------------------------------------------------
 function Aggro:ClearAllEnemies()
