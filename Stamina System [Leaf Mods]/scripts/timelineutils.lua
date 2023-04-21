@@ -24,6 +24,24 @@ local TimelineUtils = {}
 
 -- HAMMERING
 ----------------------------------------------------------------------
+-- see stategraph.lua
+-- see SGwilson.lua
+-- State
+--- onenter
+--- events
+--- timeline = [TimeEvent]
+-- TimeEvent
+--- time = number
+--- fn = function
+-- Example print output
+-- -- using fast action --	
+-- removed: premine	
+-- key: 1 value: 0.233 defline: [string "scripts/stategraphs/SGwilson.lua"]:3486	
+-- key: 2 value: 0.167 defline: [string "../mods/Stamina System [Leaf Mods]/scripts/..."]:55	
+-- key: 3 value: 0.300 defline: [string "scripts/stategraphs/SGwilson.lua"]:3494	
+-- key: 4 value: 0.467 defline: [string "scripts/stategraphs/SGwilson.lua"]:3499	
+-- you might think, why does mining have 4 frames now? we were supposed to replace 2? no that causes weird anim
+-- idk how this works but seems to work
 local action_timelines = {}
 local function ModifyTimeline(inst, state, data)
   local old_onenter = state.onenter
@@ -35,16 +53,30 @@ local function ModifyTimeline(inst, state, data)
 
         local fast_action = TimeEvent(data.time * FRAMES, function(inst)
           if inst.replica.stamina:IsUsingStamina() then
+            -- print("-- using fast action --")
             inst.sg:RemoveStateTag("pre"..state.name)
+            inst:RemoveTag("pre"..state.name)
+            -- print("removed: pre"..state.name)
           end
         end)
         table.insert(state.timeline, data.key, fast_action)
       end
+      -- for k,v in ipairs(state.timeline) do
+      --   print("key: "..k.." value: "..v.time.." defline: "..v.defline)
+      -- end
     end
     old_onenter(inst) -- all players will call this, I just added the above to modify timeline
   end
 end
 ----------------------------------------------------------------------
+-- see stategraph.lua
+-- class refs: StateGraph, State
+-- inst = StateGraph
+-- named = str
+-- states = {name, State}
+-- events = {name, EventHandler}
+-- defaultstate = State ??
+-- actionhandlers = {action, ActionHandler}
 function TimelineUtils.ModifyWorkingTimelines(inst)
   for k, state in pairs(inst.states) do
     local frame_data = nil
