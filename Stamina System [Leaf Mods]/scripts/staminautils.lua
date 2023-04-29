@@ -72,7 +72,31 @@ end
 --------------------------------------------------------------------------
 -- UI BADGE
 --------------------------------------------------------------------------
-
+function StaminaUtils.ShowHungerRate(self, args, callback)
+  callback(self, args)
+  if self.owner == nil or 
+      self.owner.replica.hunger == nil or
+      self.owner.replica.stamina == nil or
+      self.arrowdir ~= "neutral" then
+    return
+  end
+  
+  -- if we're here, hunger badge is neutral, let's check if we need to update that
+  local anim = self.arrowdir
+  -- if hunger is above 0
+  if self.owner.replica.hunger:GetPercent() > 0 then
+    -- if player is sleeping OR using stamina, show arrow decrease
+    if self.owner:HasTag("sleeping") or
+        self.owner.replica.stamina:IsUsingStamina() then
+      anim = "arrow_loop_decrease"
+    end
+  end
+  if self.arrowdir ~= anim then
+    self.arrowdir = anim
+    self.hungerarrow:GetAnimState():PlayAnimation(anim, true)
+  end
+end
+-----------------------------------
 function StaminaUtils.ShowStatusNumbers(self, callback)
   callback(self)
   self.lungs.num:Show()

@@ -28,6 +28,11 @@ end
 ----------------------------------------------------------------------
 local Stamina = Class(function(self, inst)
   self.inst = inst
+  -- hunger side-effects
+  -- see sleepingbag.lua and sleepingbaguser.lua
+  self.hunger_tick = -0.5
+
+  -- stamina data
   self.maxstamina = 100
   self.minstamina = 0
   self.currentstamina = self.maxstamina
@@ -46,10 +51,6 @@ local Stamina = Class(function(self, inst)
   self.ratedown = 8.33
   self.rateup = 2.22
   self.needcooldown = false
-  self.cooldowntask = nil
-  -- HACK: clear enemy list every 60 seconds
-  self.disabled_timer = 0
-  self.max_combat_time = 60
   self.sprintspeedmult = 1.55
   self.gave_empty_warning = false
   self.warning_interval = 10 -- when user tries to sprint but can't
@@ -96,6 +97,10 @@ end
 ----------------------------------------------------------------------
 function Stamina:GetPercent()
   return self.currentstamina / self.maxstamina
+end
+----------------------------------------------------------------------
+function Stamina:SetHungerTick(amount)
+  self.hunger_tick = amount
 end
 ----------------------------------------------------------------------
 function Stamina:SetInvincible(val)
@@ -158,19 +163,18 @@ function Stamina:SetSpeedRateUp(val)
   self.rateup = val
 end
 ----------------------------------------------------------------------
--- Increase player walkspeed
+function Stamina:StaminaTick()
+  local hunger_tick = self.hunger_tick * 0.33
+  self.inst.components.hunger:DoDelta(hunger_tick, true, true)
+end
 ----------------------------------------------------------------------
 function Stamina:BoostWalkSpeed()
   self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
-  self.usingstamina = true
 end
-----------------------------------------------------------------------
--- Reset player walkspeed
 ----------------------------------------------------------------------
 function Stamina:ResetPlayerSpeed()
   -- key param is option. here we only want to remove the "stamina" speed
   self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
-  self.usingstamina = false
 end
 ----------------------------------------------------------------------
 -- [Setter] Sets actual stamina value
@@ -210,6 +214,13 @@ function Stamina:DoDelta(amount, overtime, cause)
   if self.ondelta ~= nil then
     self.ondelta(self.inst, old_percent, new_percent)
   end
+
+  if not self:IsInvincible() then
+    if (new_percent < old_percent) and self.usingstamina then
+      self:StaminaTick()
+    end
+  end
+
   return amount
 end
 ----------------------------------------------------------------------
@@ -263,21 +274,6 @@ local function is_disabled(self, dt)
   if is_incombat(self.inst) or is_mounted(self.inst) or is_weremode(self.inst) then
     self.disabled = true
   end
-  if self.disabled then
-    if self.disabled_timer > self.max_combat_time then
-      -- HACK: clear enemy list after 60 seconds... some enemies, maybe not even all the time,
-      -- just don't obey the combat rules for some reason :(
-      if self.inst.components.aggro then
-        self.inst.components.aggro:ClearAllEnemies()
-        self.disabled = false
-        self.disabled_timer = 0
-      end
-    end
-    self.disabled_timer = self.disabled_timer + dt
-  else
-    -- not disabled so reset timer
-    self.disabled_timer = 0
-  end
   return self.disabled
 end
 ----------------------------------------------------------------------
@@ -293,50 +289,60 @@ function Stamina:OnUpdate(dt)
     return -- exit if dead
   end
 
-  if not self:IsInvincible() then
-    self.disabled = is_disabled(self, dt) or self.needcooldown -- called every loop to update mode
-    if self.disabled then
-      -- if we didn't warn yet, and user is running or is trying to run, warn
-      if not self.gave_empty_warning and (self.usingstamina or self.wants_to_sprint and self.old_wants_to_sprint ~= self.wants_to_sprint) then
-          self.inst:PushEvent("staminawarning")
-          self.gave_empty_warning = true
-          self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
-          self.old_wants_to_sprint = self.wants_to_sprint
+  if self:IsInvincible() then
+    if self.wants_to_sprint then
+      if not self.usingstamina then
+        self:BoostWalkSpeed()
       end
-
-      self:ResetPlayerSpeed()
-
-      if CanStaminaRegen(self) then
-        self:DoDelta(self.rateup * dt, true) -- increase stamina
+      self.usingstamina = true
+    else
+      if self.usingstamina then
+        self:ResetPlayerSpeed()
       end
-      return
+      self.usingstamina = false
     end
+    return
+  end
+
+  self.disabled = is_disabled(self, dt) or self.needcooldown -- called every loop to update mode
+  if self.disabled then
+    -- if we didn't warn yet, and user is running or is trying to run, warn
+    if not self.gave_empty_warning and self.usingstamina then
+        self.inst:PushEvent("staminawarning")
+        self.gave_empty_warning = true
+        self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
+    end
+
+    if self.usingstamina then
+      self:ResetPlayerSpeed()
+    end
+    self.usingstamina = false
+
+    if CanStaminaRegen(self) then
+      self:DoDelta(self.rateup * dt, true) -- increase stamina
+    end
+    return
   end
 
   -- Is pressing sprint button
   if self.wants_to_sprint then
-    if is_moving(self.inst) then
-      if not self.usingstamina then
-        self:BoostWalkSpeed()
-        self.old_wants_to_sprint = self.wants_to_sprint
-      end
-      self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-    elseif is_working(self.inst) then
-      self:ResetPlayerSpeed() -- reset speed just in case
-      self.usingstamina = true
-      self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-    else
-      self:ResetPlayerSpeed() -- reset speed just in case
+    if not self.usingstamina then
+      self:BoostWalkSpeed()
     end
+    if is_moving(self.inst) or is_working(self.inst) then
+      self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
+    end
+    self.usingstamina = true
   -- Not pressing sprint button
   else
-    if self.old_wants_to_sprint ~= self.wants_to_sprint then
+    if self.usingstamina then
       self:ResetPlayerSpeed()
-      self.old_wants_to_sprint = self.wants_to_sprint
     end
-  end
-  if not self.usingstamina and CanStaminaRegen(self) then
-    self:DoDelta(self.rateup * dt, true) -- increase stamina
+    self.usingstamina = false
+
+    if CanStaminaRegen(self) then
+      self:DoDelta(self.rateup * dt, true) -- increase stamina
+    end
   end
 end
 ----------------------------------------------------------------------

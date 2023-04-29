@@ -16,8 +16,10 @@ end
 ----------------------------------------------------------------------
 -- add stamina/aggro components to players
 ----------------------------------------------------------------------
-
-GLOBAL.TUNING.WILSON_STAMINA = 100
+GLOBAL.TUNING.STAMINA = {
+  WILSON_STAMINA = 100,
+  WILSON_HUNGER_PER_TICK = -0.5
+}
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I don't have enough energy!"
 
@@ -26,7 +28,8 @@ local function AddSystemComponents(inst)
 
   inst:AddTag("staminauser")
   inst:AddComponent("stamina")
-  inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.WILSON_STAMINA)
+  inst.components.stamina:SetHungerTick(GLOBAL.TUNING.STAMINA.WILSON_HUNGER_PER_TICK)
+  inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.STAMINA.WILSON_STAMINA)
   inst.components.stamina:SetSpeedMultiplier(SPRINTSPEED)
   inst.components.stamina:SetSpeedRateUp(SPRINTRATEUP)
   inst:ListenForEvent("staminaempty", function(inst, data)
@@ -57,7 +60,7 @@ end
 AddPlayerPostInit(AddSystemComponents)
 -- when invincible, make stamina invincible
 AddPlayerPostInit(ListenGodMode)
-
+-- implements faster "work/anim" (mining/chopping/etc) with stamina usage
 AddStategraphPostInit("wilson", TimelineUtils.ModifyWorkingTimelines)
 
 ----------------------------------------------------------------------
@@ -142,6 +145,13 @@ AddPrefabPostInit("player_classified", AddStaminaClassified)
 ----------------------------------------------------------------------
 -- user interface - implements stamina badge
 ----------------------------------------------------------------------
+AddClassPostConstruct("widgets/hungerbadge", function(self)
+  -- modify hunger so badge is updated when using stamina just like sleepingbag
+  local old_OnUpdate = self.OnUpdate
+  self.OnUpdate = function(self, dt)
+    StaminaUtils.ShowHungerRate(self, dt, old_OnUpdate)
+  end
+end)
 
 AddClassPostConstruct("widgets/statusdisplays", function(self)
   -- show/hide badge value
