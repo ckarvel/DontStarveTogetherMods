@@ -72,25 +72,27 @@ end
 --------------------------------------------------------------------------
 -- UI BADGE
 --------------------------------------------------------------------------
+-- Had to duplicate the code from hungerbadge:OnUpdate. Wanted to add a callback
+-- but Calling PlayAnimation() twice in 1 tick prevents the arrow from animating (i think)
 function StaminaUtils.ShowHungerRate(self, args, callback)
-  callback(self, args)
-  if self.owner == nil or 
-      self.owner.replica.hunger == nil or
-      self.owner.replica.stamina == nil or
-      self.arrowdir ~= "neutral" then
-    return
-  end
-  
-  -- if we're here, hunger badge is neutral, let's check if we need to update that
-  local anim = self.arrowdir
-  -- if hunger is above 0
-  if self.owner.replica.hunger:GetPercent() > 0 then
+  -- callback(args)
+  if TheNet:IsServerPaused() then return end
+
+  local anim = "neutral"
+  if  self.owner ~= nil and
+      self.owner.replica.hunger ~= nil and
+      self.owner.replica.hunger:GetPercent() > 0 and
+      (self.owner:HasTag("sleeping") or
+       (self.owner.replica.stamina ~= nil and
+       self.owner.replica.stamina:IsUsingStamina())) then
     -- if player is sleeping OR using stamina, show arrow decrease
-    if self.owner:HasTag("sleeping") or
-        self.owner.replica.stamina:IsUsingStamina() then
       anim = "arrow_loop_decrease"
-    end
   end
+
+  if self.owner:HasDebuff("wintersfeastbuff") or self.owner:HasDebuff("hungerregenbuff") then
+    anim = "arrow_loop_increase"
+  end
+
   if self.arrowdir ~= anim then
     self.arrowdir = anim
     self.hungerarrow:GetAnimState():PlayAnimation(anim, true)

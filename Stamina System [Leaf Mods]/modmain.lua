@@ -147,6 +147,7 @@ AddPrefabPostInit("player_classified", AddStaminaClassified)
 ----------------------------------------------------------------------
 AddClassPostConstruct("widgets/hungerbadge", function(self)
   -- modify hunger so badge is updated when using stamina just like sleepingbag
+  -- unfortunately old_OnUpdate is not called. Caused issues with animating arrow
   local old_OnUpdate = self.OnUpdate
   self.OnUpdate = function(self, dt)
     StaminaUtils.ShowHungerRate(self, dt, old_OnUpdate)

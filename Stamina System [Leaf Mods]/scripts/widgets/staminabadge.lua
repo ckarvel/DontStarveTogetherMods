@@ -19,6 +19,8 @@ local StaminaBadge = Class(Badge, function(self, owner)
   self.arrow:GetAnimState():SetBuild("sanity_arrow")
   self.arrow:GetAnimState():PlayAnimation("neutral", true)
   self.arrow:SetClickable(false)
+  self.arrow:GetAnimState():AnimateWhilePaused(false)
+
   self:StartUpdating()
 end)
 --------------------------------------------------------------------------

@@ -37,7 +37,6 @@ local Stamina = Class(function(self, inst)
   self.minstamina = 0
   self.currentstamina = self.maxstamina
   self.wants_to_sprint = false -- keeps track of button state for sprinting
-  self.old_wants_to_sprint = false
   self.usingstamina = false
   -- I want:
     -- 1. empty after 12s
@@ -53,7 +52,7 @@ local Stamina = Class(function(self, inst)
   self.needcooldown = false
   self.sprintspeedmult = 1.55
   self.gave_empty_warning = false
-  self.warning_interval = 10 -- when user tries to sprint but can't
+  self.warning_interval = 5 -- when user tries to sprint but can't
   self.disabled = false -- player aggroed enemies?
   self.invincible = false
   self.inst:StartUpdatingComponent(self)
@@ -150,7 +149,6 @@ end
 ----------------------------------------------------------------------
 function Stamina:SetWantsToSprint(flag)
   if self.wants_to_sprint ~= flag then
-    self.old_wants_to_sprint = self.wants_to_sprint
     self.wants_to_sprint = flag
   end
 end
@@ -191,6 +189,7 @@ function Stamina:SetValue(value, cause)
     self:ResetPlayerSpeed()
     self.needcooldown = true
     self.inst:PushEvent("staminaempty")
+    self:OnWarning()
   end
 
   -- 25% full so reenabled sprint ability
@@ -222,6 +221,11 @@ function Stamina:DoDelta(amount, overtime, cause)
   end
 
   return amount
+end
+----------------------------------------------------------------------
+function Stamina:OnWarning()
+  self.gave_empty_warning = true
+  self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
 end
 ----------------------------------------------------------------------
 function Stamina:GetDebugString()
@@ -304,13 +308,13 @@ function Stamina:OnUpdate(dt)
     return
   end
 
+  -- Handle when stamina is emptied
   self.disabled = is_disabled(self, dt) or self.needcooldown -- called every loop to update mode
   if self.disabled then
     -- if we didn't warn yet, and user is running or is trying to run, warn
-    if not self.gave_empty_warning and self.usingstamina then
+    if not self.gave_empty_warning and (self.usingstamina or self.wants_to_sprint) then
         self.inst:PushEvent("staminawarning")
-        self.gave_empty_warning = true
-        self.inst:DoTaskInTime(self.warning_interval, function() self.gave_empty_warning = false end)
+        self:OnWarning()
     end
 
     if self.usingstamina then
@@ -318,23 +322,23 @@ function Stamina:OnUpdate(dt)
     end
     self.usingstamina = false
 
-    if CanStaminaRegen(self) then
+    if not self.wants_to_sprint and CanStaminaRegen(self) then
       self:DoDelta(self.rateup * dt, true) -- increase stamina
     end
+
     return
   end
 
-  -- Is pressing sprint button
-  if self.wants_to_sprint then
+  if self.wants_to_sprint and (is_moving(self.inst) or is_working(self.inst)) then
+    -- Is pressing sprint button and running or chopping/mining
     if not self.usingstamina then
       self:BoostWalkSpeed()
     end
-    if is_moving(self.inst) or is_working(self.inst) then
-      self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-    end
+    self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
     self.usingstamina = true
-  -- Not pressing sprint button
   else
+    -- Not pressing sprint button
+    -- reset only if boost was called
     if self.usingstamina then
       self:ResetPlayerSpeed()
     end
