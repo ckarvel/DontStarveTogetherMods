@@ -28,33 +28,37 @@ end
 ----------------------------------------------------------------------
 local Stamina = Class(function(self, inst)
   self.inst = inst
-  -- hunger side-effects
-  -- see sleepingbag.lua and sleepingbaguser.lua
-  self.hunger_tick = -0.5
+  -- config
+  self.maxstamina = TUNING.STAMINA.WILSON_MAX_STAMINA
+    -- hunger side-effects
+    -- see sleepingbag.lua and sleepingbaguser.lua
+  self.hunger_tick = TUNING.STAMINA.WILSON_HUNGER_PER_TICK
+  -- 1. empty after 12/15/20/25s
+    -- 100 / 10 = 10
+    -- 100 / 12 = 8.33
+    -- 100 / 15 = 6.67
+    -- 100 / 20 = 5
+  -- 2. full after 60/45/30/15s
+    -- 100 / 60 = 1.67
+    -- 100 / 45 = 2.22
+    -- 100 / 30 = 3.33
+    -- 100 / 15 = 6.67
+  -- actual values going up/down every second
+  self.rateup = TUNING.STAMINA.WILSON_RATE_UP
+  self.ratedown = TUNING.STAMINA.WILSON_RATE_DOWN
+  self.sprintspeedmult = TUNING.STAMINA.WILSON_SPEED_MULT
 
   -- stamina data
-  self.maxstamina = 100
   self.minstamina = 0
   self.currentstamina = self.maxstamina
   self.wants_to_sprint = false -- keeps track of button state for sprinting
   self.usingstamina = false
-  -- I want:
-    -- 1. empty after 12s
-      -- 100 / 12 = 8.33
-    -- 2. full after 60/45/30/15s
-      -- 100 / 60 = 1.67
-      -- 100 / 45 = 2.22
-      -- 100 / 30 = 3.33
-      -- 100 / 15 = 6.67
-  -- actual values going up/down every second
-  self.ratedown = 8.33
-  self.rateup = 2.22
   self.needcooldown = false
-  self.sprintspeedmult = 1.55
   self.gave_empty_warning = false
   self.warning_interval = 5 -- when user tries to sprint but can't
   self.disabled = false -- player aggroed enemies?
   self.invincible = false
+  self.debounce_count = 0
   self.inst:StartUpdatingComponent(self)
 end,
 nil,
@@ -98,10 +102,6 @@ function Stamina:GetPercent()
   return self.currentstamina / self.maxstamina
 end
 ----------------------------------------------------------------------
-function Stamina:SetHungerTick(amount)
-  self.hunger_tick = amount
-end
-----------------------------------------------------------------------
 function Stamina:SetInvincible(val)
   self.invincible = val
   self.disabled = false
@@ -120,10 +120,6 @@ function Stamina:SetMaxStamina(amount)
   self.maxstamina = amount
   self.currentstamina = amount
   self:ForceUpdateHUD(true)
-end
-----------------------------------------------------------------------
-function Stamina:SetMinStamina(amount)
-  self.minstamina = amount
 end
 ----------------------------------------------------------------------
 function Stamina:MakeTired()
@@ -151,14 +147,6 @@ function Stamina:SetWantsToSprint(flag)
   if self.wants_to_sprint ~= flag then
     self.wants_to_sprint = flag
   end
-end
-----------------------------------------------------------------------
-function Stamina:SetSpeedMultiplier(val)
-  self.sprintspeedmult = val
-end
-----------------------------------------------------------------------
-function Stamina:SetSpeedRateUp(val)
-  self.rateup = val
 end
 ----------------------------------------------------------------------
 function Stamina:StaminaTick()
@@ -233,7 +221,8 @@ function Stamina:GetDebugString()
 end
 ----------------------------------------------------------------------
 local function CanStaminaRegen(self)
-  if self:IsFull() then
+  -- if stamina is already full OR player is still trying to run, no regen for you
+  if self:IsFull() or self.wants_to_sprint then
     return false
   end
   return true
@@ -308,11 +297,12 @@ function Stamina:OnUpdate(dt)
     return
   end
 
-  -- Handle when stamina is emptied
   self.disabled = is_disabled(self, dt) or self.needcooldown -- called every loop to update mode
+
+  -- Handle when stamina is emptied
   if self.disabled then
-    -- if we didn't warn yet, and user is running or is trying to run, warn
-    if not self.gave_empty_warning and (self.usingstamina or self.wants_to_sprint) then
+    -- if we didn't warn yet and user is trying to run, warn
+    if not self.gave_empty_warning and self.wants_to_sprint then
         self.inst:PushEvent("staminawarning")
         self:OnWarning()
     end
@@ -322,32 +312,56 @@ function Stamina:OnUpdate(dt)
     end
     self.usingstamina = false
 
-    if not self.wants_to_sprint and CanStaminaRegen(self) then
-      self:DoDelta(self.rateup * dt, true) -- increase stamina
-    end
-
-    return
-  end
-
-  if self.wants_to_sprint and (is_moving(self.inst) or is_working(self.inst)) then
-    -- Is pressing sprint button and running or chopping/mining
-    if not self.usingstamina then
-      self:BoostWalkSpeed()
-    end
-    self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-    self.usingstamina = true
-  else
-    -- Not pressing sprint button
-    -- reset only if boost was called
-    if self.usingstamina then
-      self:ResetPlayerSpeed()
-    end
-    self.usingstamina = false
-
     if CanStaminaRegen(self) then
       self:DoDelta(self.rateup * dt, true) -- increase stamina
     end
+
+    return -- exit here
   end
+
+  -- handle button pressed
+  if self.wants_to_sprint then
+
+    if self.usingstamina then
+      self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
+    end
+
+    local using_stamina = false
+    if is_moving(self.inst) or is_working(self.inst) then
+      using_stamina = true
+    end
+
+    -- sometimes moving returns false even though we are moving
+    -- this causes a stutter in stamina arrow that I don't like
+    -- let state be different 5 times before switching (debounce)
+    if self.usingstamina ~= using_stamina then
+      if not using_stamina then
+        if self.debounce_count < 5 then
+          self.debounce_count = self.debounce_count + 1
+          return -- exit here
+        end
+      else
+        -- player just pressed button & moved/worked for first time
+        self:BoostWalkSpeed()
+      end
+    end
+    self.debounce_count = 0 -- reset our counter
+    self.usingstamina = using_stamina
+    return -- exit here
+  end
+
+  -- handle button not pressed
+  -- if player just stopped sprinting, reset speed
+  if self.usingstamina then
+    self:ResetPlayerSpeed()
+  end
+
+  self.usingstamina = false
+
+  if CanStaminaRegen(self) then
+    self:DoDelta(self.rateup * dt, true) -- increase stamina
+  end
+
 end
 ----------------------------------------------------------------------
 return Stamina

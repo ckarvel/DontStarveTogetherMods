@@ -2,9 +2,6 @@ local StaminaUtils = GLOBAL.require("staminautils")
 local TimelineUtils = GLOBAL.require("timelineutils")
 local StaminaBadge = GLOBAL.require("widgets/staminabadge")
 local SPRINTKEY = GetModConfigData("SPRINTKEY")
-local SPRINTSPEED = GetModConfigData("SPRINTSPEED")
-local SPRINTRATEUP = GetModConfigData("SPRINTRATEUP")
-
 Assets = {
   Asset("ANIM", "anim/status_stamina.zip")
 }
@@ -17,8 +14,11 @@ end
 -- add stamina/aggro components to players
 ----------------------------------------------------------------------
 GLOBAL.TUNING.STAMINA = {
-  WILSON_STAMINA = 100,
-  WILSON_HUNGER_PER_TICK = -0.5
+  WILSON_MAX_STAMINA = GetModConfigData("MAXSTAMINA"),
+  WILSON_HUNGER_PER_TICK = GetModConfigData("HUNGERPERTICK"),
+  WILSON_RATE_UP = GetModConfigData("SPRINTRATEUP"),
+  WILSON_RATE_DOWN = GetModConfigData("SPRINTRATEDOWN"),
+  WILSON_SPEED_MULT = GetModConfigData("SPRINTSPEED"),
 }
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_TIRED = "I'm... so... tired."
 GLOBAL.STRINGS.CHARACTERS.GENERIC.ANNOUNCE_STAMINA_WARNING = "I don't have enough energy!"
@@ -28,10 +28,6 @@ local function AddSystemComponents(inst)
 
   inst:AddTag("staminauser")
   inst:AddComponent("stamina")
-  inst.components.stamina:SetHungerTick(GLOBAL.TUNING.STAMINA.WILSON_HUNGER_PER_TICK)
-  inst.components.stamina:SetMaxStamina(GLOBAL.TUNING.STAMINA.WILSON_STAMINA)
-  inst.components.stamina:SetSpeedMultiplier(SPRINTSPEED)
-  inst.components.stamina:SetSpeedRateUp(SPRINTRATEUP)
   inst:ListenForEvent("staminaempty", function(inst, data)
       inst.components.talker:Say(GLOBAL.GetString(inst, "ANNOUNCE_TIRED"))
   end)

@@ -65,8 +65,6 @@ function StaminaUtils.SetupNetvars(inst)
   -- stamina pulse aka, stamina going up or down over time (regenerating)
   inst.isstaminapulseup = net_bool(inst.GUID, "stamina.dodeltaovertime(up)", "staminadirty")
   inst.isstaminapulsedown = net_bool(inst.GUID, "stamina.dodeltaovertime(down)", "staminadirty")
-  inst.currentstamina:set(100)
-  inst.maxstamina:set(100)
 end
 
 --------------------------------------------------------------------------

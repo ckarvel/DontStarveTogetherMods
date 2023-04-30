@@ -57,7 +57,7 @@ function Stamina:Max()
   elseif self.classified ~= nil then
     return self.classified.maxstamina:value()
   else
-    return 100
+    return TUNING.STAMINA.WILSON_MAX_STAMINA
   end
 end
 --------------------------------------------------------------------------
@@ -77,7 +77,7 @@ function Stamina:GetCurrent()
   elseif self.classified ~= nil then
     return self.classified.currentstamina:value()
   else        
-    return 100
+    return TUNING.STAMINA.WILSON_MAX_STAMINA
   end
 end
 --------------------------------------------------------------------------

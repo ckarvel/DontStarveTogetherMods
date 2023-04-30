@@ -76,6 +76,25 @@ local rechargelist = {
   add_option("Faster", 6.67)
 }
 
+local ratedownlist = {
+  add_option("Fast", 10),
+  add_option("Default", 8.33),
+  add_option("Slow", 6.67),
+  add_option("Slower", 5)
+}
+
+local hungercostlist = {
+  add_option("Less", -0.05),
+  add_option("Default", -0.15),
+  add_option("More", -0.30),
+}
+
+local maxstaminalist = {
+  add_option("Less", 100),
+  add_option("Default", 150),
+  add_option("More", 200),
+}
+
 local function AddConfig(name, label, options, default, hover)
   return {name = name, label = label, options = options, default = default, hover = hover or ""}
 end
@@ -84,5 +103,8 @@ configuration_options =
 {
   AddConfig("SPRINTKEY", "Sprint Button", keyslist, KEY_LSHIFT, "Hold down this key to sprint."),
   AddConfig("SPRINTSPEED", "Sprint Speed", speedlist, 1.55, "Rider Beefalo=1.33x Elite Pig=1.55x (default) Vigor Mortis=1.75x Racer Beefalo=2x Minotaur=3x"),
-  AddConfig("SPRINTRATEUP", "Recharge Speed", rechargelist, 2.22, "Total seconds from empty to full. Slow=60s Default=45s Fast=30s Faster=15s"),
+  AddConfig("SPRINTRATEUP", "Recharge Speed", rechargelist, 2.22, "How quickly stamina is regenerated."),
+  AddConfig("SPRINTRATEDOWN", "Diminish Speed", ratedownlist, 8.33, "How quickly you run out of stamina."),
+  AddConfig("HUNGERPERTICK", "Hunger Cost", hungercostlist, -0.15, "Hunger cost when sprinting."),
+  AddConfig("MAXSTAMINA", "Max Stamina", maxstaminalist, 150, "How much stamina do you want?"),
 }
