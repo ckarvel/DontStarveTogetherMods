@@ -13,7 +13,7 @@ local function MakeCookable(inst)
   if not GLOBAL.TheWorld.ismastersim then
       return
   end
-  inst:RemoveComponent("fuel")
+
   inst:AddComponent("cookable")
   inst.components.cookable.product = "pinecone_cooked"
 end
