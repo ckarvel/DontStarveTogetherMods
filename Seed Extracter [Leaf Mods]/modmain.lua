@@ -33,7 +33,7 @@ AddPlayerPostInit(function(inst)
   local handler = sg.actionhandlers[GLOBAL.ACTIONS.PICK]
   if not handler or not handler.deststate then return end -- exit
 
-  -- WARNING: this doesn't work without QuickPick. idky
+  -- WARNING: this doesn't work when pick is not modded. action is nil. idky. execution order?
   -- for now, let's do a try-catch, or in lua terms, a "pcall"
   local success, result = GLOBAL.pcall(function()
     return handler.deststate(inst)
