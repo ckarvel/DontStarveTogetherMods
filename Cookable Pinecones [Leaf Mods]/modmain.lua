@@ -40,8 +40,10 @@ local function server_SwitchActions(inst, flag)
   if not inst or not inst.components or not inst.components.inventory then return end -- exit
   -- is there an active item?
   local activeitem = inst.components.inventory:GetActiveItem()
-  -- if so is it a pinecone?
-  if not activeitem or activeitem.prefab ~= "pinecone" then return end -- exit
+  -- if so is it a pinecone or twiggy_nut?
+  if not activeitem or
+     activeitem.prefab ~= "pinecone" or
+     activeitem.prefab ~= "twiggy_nut" then return end -- exit
   -- if false, show cook actions if not exists
   if not flag then
     if activeitem.components.cookable == nil then
