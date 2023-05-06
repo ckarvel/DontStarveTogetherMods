@@ -360,9 +360,9 @@ GLOBAL.CHEATS_ENABLED = true
 GLOBAL.require("debugkeys")
 
 -- This removes nighttime
-AddSimPostInit(function()
-  GLOBAL.TheWorld:PushEvent("ms_setseasonsegmodifier", {day = 3, dusk = 0, night = 0})
-end)
+-- AddSimPostInit(function()
+--   GLOBAL.TheWorld:PushEvent("ms_setseasonsegmodifier", {day = 3, dusk = 0, night = 0})
+-- end)
 
 ------------------------- DebugKeys that WORK -------------------------
 -- [[ Home ]] pause / step game (ctrl = resume)
@@ -413,3 +413,46 @@ end)
 -- [[ F5 + ctrl ]] spawn shadowmeteor
 -- [[ F7 ]] information about world topologies
 -- [[ Keypad* ]] give "devtool" ("Development Tool" mod may fix this)
+
+-- give me all seeds
+-- local function GetSeeds(inst)
+--   local seed_types =
+--   {
+--     "watermelon_seeds",
+--     "onion_seeds",
+--     "potato_seeds",
+--     "asparagus_seeds",
+--     "durian_seeds",
+--     "dragonfruit_seeds",
+--     "pomegranate_seeds",
+--     "tomato_seeds",
+--     "pepper_seeds",
+--     "eggplant_seeds",
+--     "garlic_seeds",
+--     "corn_seeds",
+--     "pumpkin_seeds",
+--     "carrot_seeds",
+--     "seeds"
+--   }
+--   for k,v in pairs(seed_types) do
+--     GLOBAL.TheNet:SendRemoteExecute("c_give(\""..tostring(v).."\")")
+--   end
+-- end
+
+-- when press "G", give player all seeds
+-- AddSimPostInit(function()
+--   print("#### AddSimPostInit ####")
+--   GLOBAL.TheInput:AddKeyHandler(
+--   function(key, down)
+--     if not down then return end -- Only trigger on key press
+--     -- Require CTRL for any debug keybinds
+--     if key == GLOBAL.KEY_G then
+--       GetSeeds()
+--     end
+--   end)
+-- end)
+
+-- if you do this, it'll only be server side so they'll be invisible for client
+-- so you won't be able to pick stuff up and you won't be able to drop them either
+-- AddPlayerPostInit(GetSeeds)
+

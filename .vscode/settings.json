@@ -1,0 +1,37 @@
+{
+    "Lua.diagnostics.globals": [
+        "env",
+        "modname",
+        "GLOBAL",
+        "TheSim",
+        "Asset",
+
+        "AddAction",
+        "AddRecipe",
+        "AddComponentAction",
+        "AddIngredientValues",
+        "BufferedAction",
+
+        "AddSimPostInit",
+        "AddPrefabPostInit",
+        "AddPlayerPostInit",
+        "AddComponentPostInit",
+        "AddStategraphPostInit",
+
+        "AddClassPostConstruct",
+
+        "AddReplicableComponent",
+        
+        "AddModRPCHandler",
+        "AddStategraphActionHandler",
+
+        "GetModRPC",
+        "SendModRPCToServer",
+        "GetModConfigData",
+
+        "ForceEnableMod",
+        "EnableModDebugPrint",
+        "DisableModDisabling",
+        "DisableLocalModWarning"
+    ]
+}

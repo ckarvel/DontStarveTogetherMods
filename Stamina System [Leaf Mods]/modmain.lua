@@ -200,7 +200,7 @@ end)
 local function AddOffset(badge, value)
   if not badge then return end
   local position = badge:GetPosition()
-  new_position = position + value
+  local new_position = position + value
   badge:SetPosition(new_position)
 end
 

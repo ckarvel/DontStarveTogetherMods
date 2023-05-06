@@ -59,6 +59,7 @@ local Stamina = Class(function(self, inst)
   self.disabled = false -- player aggroed enemies?
   self.invincible = false
   self.debounce_count = 0
+  self.has_boosted_speed = false
   self.inst:StartUpdatingComponent(self)
 end,
 nil,
@@ -155,12 +156,18 @@ function Stamina:StaminaTick()
 end
 ----------------------------------------------------------------------
 function Stamina:BoostWalkSpeed()
-  self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
+  if not self.has_boosted_speed then
+    self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
+  end
+  self.has_boosted_speed = true
 end
 ----------------------------------------------------------------------
 function Stamina:ResetPlayerSpeed()
-  -- key param is option. here we only want to remove the "stamina" speed
-  self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
+  if self.has_boosted_speed then
+    -- key param is option. here we only want to remove the "stamina" speed
+    self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
+  end
+  self.has_boosted_speed = false
 end
 ----------------------------------------------------------------------
 -- [Setter] Sets actual stamina value
@@ -297,6 +304,7 @@ function Stamina:OnUpdate(dt)
     return
   end
 
+  -- todo: listen to staminaempty to avoid unnecessary polling
   self.disabled = is_disabled(self, dt) or self.needcooldown -- called every loop to update mode
 
   -- Handle when stamina is emptied
@@ -306,62 +314,54 @@ function Stamina:OnUpdate(dt)
         self.inst:PushEvent("staminawarning")
         self:OnWarning()
     end
-
     if self.usingstamina then
       self:ResetPlayerSpeed()
     end
     self.usingstamina = false
-
     if CanStaminaRegen(self) then
       self:DoDelta(self.rateup * dt, true) -- increase stamina
     end
-
     return -- exit here
   end
 
-  -- handle button pressed
-  if self.wants_to_sprint then
+  -- handle user input
+  -- determine if stamina is in use or not
+  -- boost/reset speed accordingly
+  -- increase/decrease stamina accordingly
 
-    if self.usingstamina then
-      self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
-    end
+  local using_stamina = false
+  if not self.wants_to_sprint then
+    using_stamina = false
+  elseif is_moving(self.inst) or is_working(self.inst) then
+    using_stamina = true
+  end
 
-    local using_stamina = false
-    if is_moving(self.inst) or is_working(self.inst) then
-      using_stamina = true
-    end
-
-    -- sometimes moving returns false even though we are moving
-    -- this causes a stutter in stamina arrow that I don't like
-    -- let state be different 5 times before switching (debounce)
-    if self.usingstamina ~= using_stamina then
-      if not using_stamina then
-        if self.debounce_count < 5 then
-          self.debounce_count = self.debounce_count + 1
-          return -- exit here
-        end
+  if self.usingstamina ~= using_stamina then
+    if using_stamina then
+      -- just started sprinting
+      self:BoostWalkSpeed() -- add speed boost
+      self.debounce_count = 0
+    else
+      -- just stopped sprinting
+      -- debounce (set state after 5 ticks to make sure we stopped)
+      if self.debounce_count < 5 then
+        self.debounce_count = self.debounce_count + 1
+        using_stamina = self.usingstamina -- sabotage if debounce not finished
       else
-        -- player just pressed button & moved/worked for first time
-        self:BoostWalkSpeed()
+        self:ResetPlayerSpeed() -- remove speed boost
+        self.debounce_count = 0
       end
     end
-    self.debounce_count = 0 -- reset our counter
     self.usingstamina = using_stamina
-    return -- exit here
   end
 
-  -- handle button not pressed
-  -- if player just stopped sprinting, reset speed
   if self.usingstamina then
-    self:ResetPlayerSpeed()
+    self:DoDelta(-self.ratedown * dt, true) -- decrease stamina
+  else
+    if CanStaminaRegen(self) then
+      self:DoDelta(self.rateup * dt, true) -- increase stamina
+    end
   end
-
-  self.usingstamina = false
-
-  if CanStaminaRegen(self) then
-    self:DoDelta(self.rateup * dt, true) -- increase stamina
-  end
-
 end
 ----------------------------------------------------------------------
 return Stamina
