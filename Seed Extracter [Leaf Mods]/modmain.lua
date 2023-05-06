@@ -25,23 +25,24 @@ AddStategraphActionHandler("wilson_client", GLOBAL.ActionHandler(EXTRACT, "dolon
 ----------------------------------------------------------------------
 AddPlayerPostInit(function(inst)
   if not GLOBAL.TheWorld.ismastersim then return end -- exit
+  -- see details for all this in stategraph.lua
   local sg = inst.sg.sg -- the first sg type is "StateGraphInstance"
   if not sg.actionhandlers then return end -- exit
   
   -- from "pick" actionhandler, get actionlength
   local handler = sg.actionhandlers[GLOBAL.ACTIONS.PICK]
   if not handler or not handler.deststate then return end -- exit
-  local state = handler.deststate(inst)
+
+  -- WARNING: this doesn't work without QuickPick. idky
+  -- for now, let's do a try-catch, or in lua terms, a "pcall"
+  local success, result = GLOBAL.pcall(function()
+    return handler.deststate(inst)
+  end)
+  if not success then return end  -- exit
 
   -- apply the same actionlength as "pick" to handler for "extract"
   handler = sg.actionhandlers[EXTRACT]
-  -- in stategraph.lua:164
-  -- if type(state) == "string" then
-  --     self.deststate = function(inst) return state end
-  -- else
-  --     self.deststate = state
-  -- end
-  handler.deststate = function(inst) return state end
+  handler.deststate = function(inst) return result end
 end)
 ----------------------------------------------------------------------
 --- Define Extractable objects and result (remove/replace with randomseed)
