@@ -45,13 +45,11 @@ local function server_SwitchActions(inst, flag)
   -- if false, show cook actions if not exists
   if not flag then
     if activeitem.components.cookable == nil then
-      print("adding the cookable component")
       activeitem:AddComponent("cookable")
       activeitem.components.cookable.product = "pinecone_cooked"
     end
   -- if true, hide cook actions if exists
   elseif activeitem.components.cookable ~= nil then
-    print("removing the cookable component")
     activeitem:RemoveComponent("cookable")
   end
 end
