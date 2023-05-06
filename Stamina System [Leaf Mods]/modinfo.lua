@@ -85,8 +85,8 @@ local ratedownlist = {
 
 local hungercostlist = {
   add_option("Less", -0.05),
-  add_option("Default", -0.15),
-  add_option("More", -0.30),
+  add_option("Default", -0.10),
+  add_option("More", -0.15),
 }
 
 local maxstaminalist = {
@@ -105,6 +105,6 @@ configuration_options =
   AddConfig("SPRINTSPEED", "Sprint Speed", speedlist, 1.55, "Rider Beefalo=1.33x Elite Pig=1.55x (default) Vigor Mortis=1.75x Racer Beefalo=2x Minotaur=3x"),
   AddConfig("SPRINTRATEUP", "Recharge Speed", rechargelist, 2.22, "How quickly stamina is regenerated."),
   AddConfig("SPRINTRATEDOWN", "Diminish Speed", ratedownlist, 8.33, "How quickly you run out of stamina."),
-  AddConfig("HUNGERPERTICK", "Hunger Cost", hungercostlist, -0.15, "Hunger cost when sprinting."),
+  AddConfig("HUNGERPERTICK", "Hunger Cost", hungercostlist, -0.10, "Hunger cost when sprinting."),
   AddConfig("MAXSTAMINA", "Max Stamina", maxstaminalist, 150, "How much stamina do you want?"),
 }
