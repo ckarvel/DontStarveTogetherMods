@@ -3,8 +3,10 @@
         "env",
         "modname",
         "GLOBAL",
+        "TUNING",
         "TheSim",
         "Asset",
+        "Class",
 
         "AddAction",
         "AddRecipe",

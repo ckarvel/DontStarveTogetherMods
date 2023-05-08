@@ -151,6 +151,8 @@ function Stamina:SetWantsToSprint(flag)
 end
 ----------------------------------------------------------------------
 function Stamina:StaminaTick()
+  -- todo: 0.33... ????
+  -- so for -0.05 => -0.0165 per tick => -0.5445 per second
   local hunger_tick = self.hunger_tick * 0.33
   self.inst.components.hunger:DoDelta(hunger_tick, true, true)
 end
@@ -158,6 +160,7 @@ end
 function Stamina:BoostWalkSpeed()
   if not self.has_boosted_speed then
     self.inst.components.locomotor:SetExternalSpeedMultiplier(self.inst, "stamina", self.sprintspeedmult)
+    self.inst:PushEvent("usingstamina", { usingstamina = true} )
   end
   self.has_boosted_speed = true
 end
@@ -166,6 +169,7 @@ function Stamina:ResetPlayerSpeed()
   if self.has_boosted_speed then
     -- key param is option. here we only want to remove the "stamina" speed
     self.inst.components.locomotor:RemoveExternalSpeedMultiplier(self.inst, "stamina")
+    self.inst:PushEvent("usingstamina", { usingstamina = false} )
   end
   self.has_boosted_speed = false
 end

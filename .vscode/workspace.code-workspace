@@ -15,5 +15,15 @@
       "name": "DST API",
       "path": "C:/Program Files (x86)/Steam/steamapps/common/Don't Starve Together/data/scripts"
     }
-  ]
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/map": true,
+      "**/backup": true,
+      "**/speech*": true,
+      "**/languages": true,
+      "**/ds_mod_tools*": true
+    },
+  }
 }

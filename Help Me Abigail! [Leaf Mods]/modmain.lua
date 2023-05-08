@@ -1,17 +1,16 @@
--- TODO:
--- Future:
---  better fix for: if wendy starts at sanity 0, abbie won't be crazy.
---  Find out how to get Wendy from Abbie and vice versa
---        Because Abigail is linked with the first Wendy found on the server
 ----------------------------------------------------------------------
--- Abigail fight shadow creatures
+-- Among all players, find Abigail's Wendy
+-- TODO:
+--  1. better fix for: if wendy starts at sanity 0, abbie won't be crazy.
+--  2. find out how to get Wendy from Abbie and vice versa because
+--     Abigail is linked without first Wendy found on server
 -- NOTES:
+-- for 2: look at follower.lua where it talks about cached leader id
 -- _playerlink -> this is for the quest ghosts, pipspook
 -- Q's:
 -- why isn't player the follower.leader?! what is follower.leader then?
+-- ^^^ look that over again in follower.lua
 ----------------------------------------------------------------------
-
--- Among all players, find Abigail's Wendy
 local function GetWendyPlayer()
   if not GLOBAL.TheWorld.ismastersim then return end
   for index, player in ipairs(GLOBAL.AllPlayers) do -- we need to find the correct wendy player
@@ -22,8 +21,42 @@ local function GetWendyPlayer()
   return nil
 end
 
--- Adds/removes crazy tag on Wendy sanity change which enables
--- Abigail to attack shadows or not.
+----------------------------------------------------------------------
+-- Abigail stick to Wendy like glue on paper!
+---------------------------------------------------------------------
+-- Stay close to Wendy
+-- see tuning.lua
+GLOBAL.ABIGAIL_DEFENSIVE_MIN_FOLLOW = 1
+GLOBAL.ABIGAIL_DEFENSIVE_MAX_FOLLOW = 3 -- 5
+GLOBAL.ABIGAIL_DEFENSIVE_MED_FOLLOW = 2 -- 3
+GLOBAL.ABIGAIL_AGGRESSIVE_MIN_FOLLOW = 1 -- 3
+GLOBAL.ABIGAIL_AGGRESSIVE_MAX_FOLLOW = 5 -- 10
+GLOBAL.ABIGAIL_AGGRESSIVE_MED_FOLLOW = 3 -- 6
+-- Maintain Wendy speed
+local function MaintainWendySpeed(inst)
+  if not GLOBAL.TheWorld.ismastersim then return end
+  -- default: false or nil??
+  inst.components.locomotor.fasteronroad = true
+  -- default 5
+  inst.components.locomotor.runspeed = TUNING.WILSON_RUN_SPEED -- 6
+  -- on usingstamina event, boost speed of abigail
+  local boost_speed = function(inst, player, data)
+    if data.usingstamina then
+      local multiplier = player.components.stamina.sprintspeedmult
+      inst.components.locomotor:SetExternalSpeedMultiplier(inst, "stamina", multiplier)
+    else
+      inst.components.locomotor:RemoveExternalSpeedMultiplier(inst, "stamina")
+    end
+  end
+  local player = GetWendyPlayer()
+  if not player then return end
+  inst:ListenForEvent("usingstamina", function(player, data) boost_speed(inst, player, data) end, player)
+end
+AddPrefabPostInit("abigail", MaintainWendySpeed)
+----------------------------------------------------------------------
+-- Enable Abigail to fight nightmare creatures
+----------------------------------------------------------------------
+-- Adds/removes crazy tag on Abigail which enables her to fight nightmares
 local function OnSanityChange(inst, player, insane)
   if not player or not player.entity:IsVisible() then return end
   if insane then
@@ -32,23 +65,17 @@ local function OnSanityChange(inst, player, insane)
     inst:RemoveTag("crazy")
   end
 end
-
-----------------------------------------------------------------------
--- Abigail will attack shadow creatures when Wendy's insane
-----------------------------------------------------------------------
-local function CanAttackShadowCreatures(inst)
+-- Abigail is notified when Wendy is insane
+local function TrackWendySanity(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
   local player = GetWendyPlayer()
-  if player then
-      inst:ListenForEvent("goinsane", function(player) OnSanityChange(inst, player, true) end, player)
-      inst:ListenForEvent("gosane", function(player) OnSanityChange(inst, player, false) end, player)
-  end
+  if not player then return end
+  inst:ListenForEvent("goinsane", function(player) OnSanityChange(inst, player, true) end, player)
+  inst:ListenForEvent("gosane", function(player) OnSanityChange(inst, player, false) end, player)
 end
-AddPrefabPostInit("abigail", CanAttackShadowCreatures)
-
--- When toggling between defensive/aggressive Abigail, this will
--- make sure if Wendy is insane, Abigail is also insane.
-local function OnGhostChangeBehavior(inst)
+AddPrefabPostInit("abigail", TrackWendySanity)
+-- Maintain sanity state when toggling between passive/aggressive Abigail
+local function OnAbigailChangeBehavior(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
   local old_ghostlybond_changebehaviour = inst.components.ghostlybond.changebehaviourfn
   inst.components.ghostlybond.changebehaviourfn = function(inst, ghost)
@@ -58,9 +85,8 @@ local function OnGhostChangeBehavior(inst)
     return old_ghostlybond_changebehaviour(inst, ghost)
   end
 end
-AddPrefabPostInit("wendy", OnGhostChangeBehavior)
-
--- Shadow/nightmare creatures rewards Wendy sanity when Abigail kills them
+AddPrefabPostInit("wendy", OnAbigailChangeBehavior)
+-- Reward Wendy sanity when Abigail kills nightmares
 local function CheckIfAbigailAttacking(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
   local old_onkilledbyother = inst.components.combat.onkilledbyother
@@ -74,7 +100,7 @@ local function CheckIfAbigailAttacking(inst)
     old_onkilledbyother(inst, attacker)
   end
 end
---- Get All Nightmare creatures ---
+-- Get All Nightmare creatures which do the sanity rewarding
 local NIGHTMARES =
 {
   "crawlinghorror",
@@ -88,7 +114,7 @@ for k,v in pairs(NIGHTMARES) do
 end
 
 ----------------------------------------------------------------------
--- Abigail can attack Tentacle Pillar
+-- Enable Abigail to attack Tentacle Pillars
 ----------------------------------------------------------------------
 local function AllowAbigailHits(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
