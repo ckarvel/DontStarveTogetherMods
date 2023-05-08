@@ -38,7 +38,7 @@ end
 ----------------------------------------------------------------------
 local function CanAttackShadowCreatures(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
-  player = GetWendyPlayer()
+  local player = GetWendyPlayer()
   if player then
       inst:ListenForEvent("goinsane", function(player) OnSanityChange(inst, player, true) end, player)
       inst:ListenForEvent("gosane", function(player) OnSanityChange(inst, player, false) end, player)
@@ -50,7 +50,7 @@ AddPrefabPostInit("abigail", CanAttackShadowCreatures)
 -- make sure if Wendy is insane, Abigail is also insane.
 local function OnGhostChangeBehavior(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
-  old_ghostlybond_changebehaviour = inst.components.ghostlybond.changebehaviourfn
+  local old_ghostlybond_changebehaviour = inst.components.ghostlybond.changebehaviourfn
   inst.components.ghostlybond.changebehaviourfn = function(inst, ghost)
     if inst.components.sanity:IsInsane() and not ghost:HasTag("crazy") then
         ghost:AddTag("crazy")
@@ -63,10 +63,10 @@ AddPrefabPostInit("wendy", OnGhostChangeBehavior)
 -- Shadow/nightmare creatures rewards Wendy sanity when Abigail kills them
 local function CheckIfAbigailAttacking(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
-  old_onkilledbyother = inst.components.combat.onkilledbyother
+  local old_onkilledbyother = inst.components.combat.onkilledbyother
   inst.components.combat.onkilledbyother = function(inst, attacker)
     if attacker:HasTag("abigail") then
-      player = GetWendyPlayer()
+      local player = GetWendyPlayer()
       if player then
         attacker = player
       end
@@ -93,7 +93,7 @@ end
 local function AllowAbigailHits(inst)
   if not GLOBAL.TheWorld.ismastersim then return end
   inst:AddTag("monster") -- so abigail can attack him
-  old_onhit = inst.components.combat.onhitfn
+  local old_onhit = inst.components.combat.onhitfn
   inst.components.combat.onhitfn = function(inst, attacker, damage)
     old_onhit(inst, attacker, damage)
     if attacker:HasTag("abigail") then
