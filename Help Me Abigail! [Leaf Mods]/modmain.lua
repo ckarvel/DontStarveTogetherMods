@@ -97,8 +97,17 @@ local function CheckIfAbigailAttacking(inst)
         attacker = player
       end
     end
-    old_onkilledbyother(inst, attacker)
+    -- combat.lua:565 this function may be nil so check first! (see note below)
+    if old_onkilledbyother ~= nil then
+      old_onkilledbyother(inst, attacker)
+    end
   end
+  -- old_onkilledbyother caused a crash:
+  --   [02:09:14]: [string "../mods/Help Me Abigail! [Leaf Mods]/modmai..."]:100: attempt to call upvalue 'old_onkilledbyother' (a nil value)
+  -- LUA ERROR stack traceback:
+  -- ../mods/Help Me Abigail! [Leaf Mods]/modmain.lua:100 in (field) onkilledbyother (Lua) <93-101>
+  --    inst = 116669 - crawlingnightmare (valid:true)
+  --    attacker = 114295 - wendy (valid:true)
 end
 -- Get All Nightmare creatures which do the sanity rewarding
 local NIGHTMARES =
